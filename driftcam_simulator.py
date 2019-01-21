@@ -19,6 +19,8 @@ def get_interpolated(df, field1, search_value, field2):
         posterior = df[field1][index_posterior]
         if anterior < search_value and posterior >= search_value:
             not_found = False
+        elif anterior > search_value and posterior <= search_value:
+            not_found = False
         else:
             index_anterior += 1
             index_posterior += 1
@@ -29,7 +31,9 @@ def get_interpolated(df, field1, search_value, field2):
         x2 = df[field1][index_posterior]
         y1 = df[field2][index_anterior]
         y2 = df[field2][index_posterior]
-        return ((x-x1)*y1+(x2-x)*y2)/(x2-x1)
+
+        m = (y2-y1)/(x2-x1)
+        return m*(x-x1)+y1
     else:
         print('Value {0} not found!'.format(search_value))
 
@@ -65,9 +69,10 @@ drag_dive_history = []
 balls_history = []
 
 dropped_ball_time = 0
-pid = SimplePID(590, -100, 100, 10, 0.1, 0.001, )
+pid = SimplePID(590, -100, 100, 10, 0.1, 0.001 )
 
-while depth < 600:
+
+while depth < 600 and t < 1000:
     microballast_weight = ball_weight * number_of_balls # kg
     microballast_volume = ball_volume * number_of_balls # m3
 
@@ -78,6 +83,7 @@ while depth < 600:
     buoyancy = volume_total*gravity*seawater_density
     drag = weight_total - buoyancy  # assume it acelerates to terminal velocity
 
+    ball_buoyancy = ball_volume*gravity*seawater_density
 
     new_drag = (main_weight + ball_weight * (number_of_balls - 1) + flotation_weight)*gravity - ((flotation_volume + main_volume + ball_volume * (number_of_balls - 1))*gravity*seawater_density)
 
@@ -92,7 +98,7 @@ while depth < 600:
     print('Density {0}'.format(seawater_density))
 
     output = pid.get_output_value(depth)
-    if output < -5 and number_of_balls > 0 and t - dropped_ball_time > 5.0 and new_drag > 0:
+    if output < -ball_buoyancy and number_of_balls > 0 and t - dropped_ball_time > 5.0 and new_drag > 0:
         dropped_ball_time = t
         number_of_balls -= 1
 
