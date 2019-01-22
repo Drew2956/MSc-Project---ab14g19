@@ -5,7 +5,10 @@ from plotly import tools
 import plotly.graph_objs as go
 from SimplePID import SimplePID
 
+# TODO: repetitive linear searchs in the depth/density fields for the interpolation slow down the whole simulation. Perhaps is better 
+# to perform a single fine grain interpolation, and then work with a down-to-cm resolution lookup table
 
+# TODO: fix data headers for new testing data (from ctd_seawater_density calculation scripts) as they included the units in the variable name
 def get_interpolated(df, field1, search_value, field2):
     # Initialize the variables
     anterior = 0
@@ -38,24 +41,29 @@ def get_interpolated(df, field1, search_value, field2):
         print('Value {0} not found!'.format(search_value))
 
 
-
+# read input data (density profile)
 df = pd.read_csv('UDP-SB-CTD-RAW_20180801-161750_seawater_density.csv')
 
+# this can be loaded from an external YAML
 depth = 500.0  # m
 main_weight = 37.5 # kg
 main_volume = 0.03 # m3
 ball_volume = 4/3*math.pi*math.pow(0.008,3)
-ball_weight = 0.016728 # kg
+ball_weight = 0.016728 # kg # use material density instead
 number_of_balls = 90 # number of balls
 
 flotation_weight = 4.72 # kg
 flotation_density = 400.0 # kg/m3
 flotation_volume = flotation_weight / flotation_density
 
+# For acurate simulation, we may need to simulate volume change
+
+# WARNING: may is a bit high, we must try with a finer grain time step, as 0.1 seconds or less.
 time_interval = 0.5
 t = 0
 
 # variables you don't want to change unless you know what you're doing
+# define constants  
 gravity = 9.81
 drag_coefficient = 1.2
 radius = 0.2
@@ -70,7 +78,6 @@ balls_history = []
 
 dropped_ball_time = 0
 pid = SimplePID(590, -100, 100, 10, 0.1, 0.001 )
-
 
 while depth < 600 and t < 1000:
     microballast_weight = ball_weight * number_of_balls # kg
@@ -136,7 +143,6 @@ trace3 = go.Scatter(y=drag_dive_history, x=time_dive_history, name='Drag')
 trace4 = go.Scatter(y=balls_history, x=time_dive_history, name='Balls')
 
 data = [trace1, trace2, trace3, trace4]
-
 
 fig = tools.make_subplots(rows=2, cols=2, subplot_titles=('Depth', 'Velocity',
                                                           'Drag', 'Balls'))
