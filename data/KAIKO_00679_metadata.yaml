@@ -1,0 +1,34 @@
+Comment: 'This file contains metadata about the context of the generated output for:'
+Filename: KAIKO_00679_kaiko.csv
+Date:
+  Date: 2016-01-12
+  Time: 08:45:35
+Device:
+  Name: KAIKO
+  Type: ROV
+Location:
+  Latitude: 22.8518
+  Longitude: 153.4493
+  Name: Takuyo-Daigo
+  Depth_max: 1215
+Data:
+  density:
+    name: Density
+    unit: kg_m3
+    default: 0
+  depth:
+    name: Depth
+    unit: m
+    default: 0
+  pressure:
+    name: Pressure
+    unit: dbar
+    default: 0
+  salinity:
+    name: Salinity
+    unit: psu
+    default: 30
+  temperature:
+    name: Temperature
+    unit: celsius
+    default: 0

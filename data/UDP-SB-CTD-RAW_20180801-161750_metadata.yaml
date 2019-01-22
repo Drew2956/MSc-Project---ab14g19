@@ -1,0 +1,35 @@
+
+Comment: 'This file contains metadata about the context of the generated output for:'
+Filename: UDP-SB-CTD-RAW_20180801-161750_output.csv
+Location:
+  Depth_max: -1
+  Latitude: 0
+  Longitude: 0
+  Name: Put the location name here
+Date:
+  Date: 2018-08-01
+  Time: 16:24:31
+Device:
+  Name: Subastian
+  Type: device_type
+Data:
+  density:
+    name: Density
+    unit: kg_m3
+    default: 0
+  depth:
+    name: Depth
+    unit: m
+    default: 0
+  pressure:
+    name: Pressure
+    unit: dbar
+    default: 0
+  salinity:
+    name: Salinity
+    unit: psu
+    default: 30
+  temperature:
+    name: Temperature
+    unit: celsius
+    default: 0
