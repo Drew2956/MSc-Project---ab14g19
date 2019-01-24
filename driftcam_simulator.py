@@ -1,3 +1,7 @@
+# Driftcam diving simulator. 
+# Created by: M. Massot
+# Edited by: M. Massot, J. Cappelletto
+
 import math
 import pandas as pd
 import plotly.offline as py
@@ -9,6 +13,9 @@ from SimplePID import SimplePID
 # to perform a single fine grain interpolation, and then work with a down-to-cm resolution lookup table
 
 # TODO: fix data headers for new testing data (from ctd_seawater_density calculation scripts) as they included the units in the variable name
+
+# As realease v1.0 get_interpolated function is not being used beacuse of the high computational cost during list search
+# This could be replaced (for dev purposes) by a polynomial curve or use the ordered list with a binomial search algorithm
 def get_interpolated(df, field1, search_value, field2):
     # Initialize the variables
     anterior = 0
@@ -44,27 +51,14 @@ def get_interpolated(df, field1, search_value, field2):
 # read input data (density profile)
 df = pd.read_csv('data/UDP-SB-CTD-RAW_20180801-161750_seawater_density.csv')
 
-# this can be loaded from an external YAML
-depth = 510.0  # m
-main_mass = 37.5 # kg
-main_volume = 0.03 # m3
-ball_volume = 4/3*math.pi*math.pow(0.008,3)
-ball_density = 7800 # kg / m3 # ball_mass = 0.016728 # kg 
-ball_mass = ball_volume * ball_density
-number_of_balls = 90 # initial number of balls
-
-vertical_velocity = 0.26
-
-flotation_mass = 4.72 # kg
-flotation_density = 400.0 # kg/m3
-flotation_volume = flotation_mass / flotation_density
-
-# For acurate simulation, we may need to simulate volume change
-
-# WARNING: may is a bit high, we must try with a finer grain time step, for example 0.1 s
-time_interval = 0.2
+# Starting values for the simulation
+depth = 40.0  # m
+vertical_velocity = 0.0
 t = 0.0
-min_dispensing_time = 1
+
+# Other simulation parameters 
+time_interval = 0.1     # Euler solver time step. Ideal step values: 0.1 , as smaller steps doesn't provide any noticeable change in system dynamics response
+min_dispensing_time = 7 # minimum admissible time between drop ball event
 dropped_ball_time = 0   # timestamp of last dropped ball event
 
 # variables you don't want to change unless you know what you're doing
@@ -73,7 +67,21 @@ gravity = 9.81
 drag_coefficient = 1.2
 radius = 0.2
 area = (math.pi*radius**2)
+Tau = 7 # system dynamic response constant
 
+# this can be loaded from an external YAML
+main_mass = 37.5 # kg
+main_volume = 0.03 # m3
+ball_volume = 4/3*math.pi*math.pow(0.008,3)
+ball_density = 7800 # kg / m3 # ball_mass = 0.016728 # kg 
+ball_mass = ball_volume * ball_density
+number_of_balls = 90 # initial number of balls
+
+flotation_mass = 4.72 # kg
+flotation_density = 400.0 # kg/m3
+flotation_volume = flotation_mass / flotation_density
+
+#  Empty placeholders for incoming simulation data
 time_dive_history = []
 velocity_dive_history = []
 depth_dive_history = []
@@ -84,7 +92,10 @@ acceleration_dive_history = []
 
 pid = SimplePID(590, -100, 100, 10, 0.1, 0.001 )
 
-while depth < 600 and t < 1000:     # limit simulation time and depth (due to speed constraints)
+last_velocity = vertical_velocity
+
+while depth < 800 and t < 5000:     # limit simulation time and depth (due to speed constraints)
+
     # replace weight with mass
     microballast_mass = ball_mass * number_of_balls # kg
     microballast_volume = ball_volume * number_of_balls # m3
@@ -97,22 +108,31 @@ while depth < 600 and t < 1000:     # limit simulation time and depth (due to sp
     ####################
     # See if it is possible to improve speed while doing the density search in the input vector (already ordered)
     seawater_density = 1029.6
+    ball_buoyancy = ball_volume*gravity*seawater_density    # weight of the displaced seawater volume (per ball)
 #    seawater_density = get_interpolated(df, 'Depth', depth, 'Density')
 
     buoyancy_force = total_volume*gravity*seawater_density
     drag_force = 0.5*drag_coefficient*seawater_density*area*abs(vertical_velocity)*vertical_velocity
     # calculate the actual net force experienced by the platform
     net_force = total_weight - buoyancy_force - drag_force
-    # The real accelaration is obtained from F = m x a 
+    # The real accelaration is obtained from F = m . a 
     acceleration = net_force / total_mass
     # The velocity is calculated via Euler integration for the acceleration 
     vertical_velocity = vertical_velocity + acceleration*time_interval
 #    force_drag = total_weight - force_buoyancy  # assume it acelerates to terminal velocity
     depth = depth + vertical_velocity*time_interval
 
-    ball_buoyancy = ball_volume*gravity*seawater_density
+   # TODO: Discuss how to actually define the trigger 
+    # It still depends on the seawater_density!!!
+    future_velocity = vertical_velocity + 6*(vertical_velocity-last_velocity)
 
     new_drag = (main_mass + ball_mass * (number_of_balls-1) + flotation_mass)*gravity - ((flotation_volume + main_volume + ball_volume * (number_of_balls-1))*gravity*seawater_density)
+    # drop a single ball
+    if (depth > 500) and (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (future_velocity > 0):
+#    if (depth > 500) and (output < -ball_buoyancy) and (number_of_balls > 1) and (t - dropped_ball_time) > min_dispensing_time and (new_drag > 1):
+        dropped_ball_time = t
+        number_of_balls -= 1
+        last_velocity = vertical_velocity
 
     print('-------------------------------')
     print('Time {0}'.format(t))
@@ -129,20 +149,9 @@ while depth < 600 and t < 1000:     # limit simulation time and depth (due to sp
 
     output = pid.get_output_value(depth)
 
-    # drop a single ball
-    if (output < -ball_buoyancy) and (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (new_drag > 0):
-        dropped_ball_time = t
-        number_of_balls -= 1
 
-    # Here, it is assuming is always at terminal speed, which is not necessarily true, specially when you have just dropped a ball.
-    # Still, it should be pretty close for small ball masses.
-    # The main concern is that the velocity profile  
-#    if drag_force > 0:
-#        vertical_velocity = math.pow(drag_force/(drag_coefficient*seawater_density*(area/2)), 0.5)
-#    else:
-#        vertical_velocity = -math.pow(-drag_force/(drag_coefficient*seawater_density*(area/2)), 0.5)
-    
-    if depth < 1.5:
+    # to avoid non-valid cases    
+    if depth < 0:
         break
 
     acceleration_dive_history.append(acceleration)
