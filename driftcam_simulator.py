@@ -80,10 +80,12 @@ dropped_ball_time = 0
 pid = SimplePID(590, -100, 100, 10, 0.1, 0.001 )
 
 while depth < 600 and t < 1000:
+    # replace weight with mass
     microballast_weight = ball_weight * number_of_balls # kg
     microballast_volume = ball_volume * number_of_balls # m3
 
     volume_total = flotation_volume + main_volume + microballast_volume
+    # replace weight with mass
     weight_total = (main_weight + microballast_weight + flotation_weight)*gravity
 
     seawater_density = get_interpolated(df, 'Depth', depth, 'Density')
