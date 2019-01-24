@@ -42,28 +42,33 @@ def get_interpolated(df, field1, search_value, field2):
 
 
 # read input data (density profile)
-df = pd.read_csv('UDP-SB-CTD-RAW_20180801-161750_seawater_density.csv')
+df = pd.read_csv('data/UDP-SB-CTD-RAW_20180801-161750_seawater_density.csv')
 
 # this can be loaded from an external YAML
-depth = 500.0  # m
-main_weight = 37.5 # kg
+depth = 510.0  # m
+main_mass = 37.5 # kg
 main_volume = 0.03 # m3
 ball_volume = 4/3*math.pi*math.pow(0.008,3)
-ball_weight = 0.016728 # kg # use material density instead
-number_of_balls = 90 # number of balls
+ball_density = 7800 # kg / m3 # ball_mass = 0.016728 # kg 
+ball_mass = ball_volume * ball_density
+number_of_balls = 90 # initial number of balls
 
-flotation_weight = 4.72 # kg
+vertical_velocity = 0.26
+
+flotation_mass = 4.72 # kg
 flotation_density = 400.0 # kg/m3
-flotation_volume = flotation_weight / flotation_density
+flotation_volume = flotation_mass / flotation_density
 
 # For acurate simulation, we may need to simulate volume change
 
-# WARNING: may is a bit high, we must try with a finer grain time step, as 0.1 seconds or less.
-time_interval = 0.5
-t = 0
+# WARNING: may is a bit high, we must try with a finer grain time step, for example 0.1 s
+time_interval = 0.2
+t = 0.0
+min_dispensing_time = 1
+dropped_ball_time = 0   # timestamp of last dropped ball event
 
 # variables you don't want to change unless you know what you're doing
-# define constants  
+# define constants andd platform dimensions
 gravity = 9.81
 drag_coefficient = 1.2
 radius = 0.2
@@ -75,62 +80,85 @@ depth_dive_history = []
 net_buoyancy_dive_history = []
 drag_dive_history = []
 balls_history = []
+acceleration_dive_history = []
 
-dropped_ball_time = 0
 pid = SimplePID(590, -100, 100, 10, 0.1, 0.001 )
 
-while depth < 600 and t < 1000:
+while depth < 600 and t < 1000:     # limit simulation time and depth (due to speed constraints)
     # replace weight with mass
-    microballast_weight = ball_weight * number_of_balls # kg
+    microballast_mass = ball_mass * number_of_balls # kg
     microballast_volume = ball_volume * number_of_balls # m3
 
-    volume_total = flotation_volume + main_volume + microballast_volume
-    # replace weight with mass
-    weight_total = (main_weight + microballast_weight + flotation_weight)*gravity
+    # complete system volume: platform + flotation + microballasts
+    total_volume = flotation_volume + main_volume + microballast_volume
+    total_mass = (main_mass + microballast_mass + flotation_mass)
+    total_weight = total_mass*gravity
 
-    seawater_density = get_interpolated(df, 'Depth', depth, 'Density')
-    buoyancy = volume_total*gravity*seawater_density
-    drag = weight_total - buoyancy  # assume it acelerates to terminal velocity
+    ####################
+    # See if it is possible to improve speed while doing the density search in the input vector (already ordered)
+    seawater_density = 1029.6
+#    seawater_density = get_interpolated(df, 'Depth', depth, 'Density')
+
+    buoyancy_force = total_volume*gravity*seawater_density
+    drag_force = 0.5*drag_coefficient*seawater_density*area*abs(vertical_velocity)*vertical_velocity
+    # calculate the actual net force experienced by the platform
+    net_force = total_weight - buoyancy_force - drag_force
+    # The real accelaration is obtained from F = m x a 
+    acceleration = net_force / total_mass
+    # The velocity is calculated via Euler integration for the acceleration 
+    vertical_velocity = vertical_velocity + acceleration*time_interval
+#    force_drag = total_weight - force_buoyancy  # assume it acelerates to terminal velocity
+    depth = depth + vertical_velocity*time_interval
 
     ball_buoyancy = ball_volume*gravity*seawater_density
 
-    new_drag = (main_weight + ball_weight * (number_of_balls - 1) + flotation_weight)*gravity - ((flotation_volume + main_volume + ball_volume * (number_of_balls - 1))*gravity*seawater_density)
+    new_drag = (main_mass + ball_mass * (number_of_balls-1) + flotation_mass)*gravity - ((flotation_volume + main_volume + ball_volume * (number_of_balls-1))*gravity*seawater_density)
 
-    print('----------------------------------')
+    print('-------------------------------')
     print('Time {0}'.format(t))
-    print('Weight: {}'.format(weight_total))
-    print('Buoyancy: {}'.format(buoyancy))
-    print('Drag: {}'.format(drag))
-    print('Depth: {}'.format(depth))
-    print('PID {0}'.format(pid.get_output_value(depth)))
-    print('# Balls {0}'.format(number_of_balls))
     print('Density {0}'.format(seawater_density))
+    print('# Balls {0}'.format(number_of_balls))
+    print('Weight: {}'.format(total_weight))
+    print('Buoyancy: {}'.format(buoyancy_force))
+    print('Drag: {}'.format(drag_force))
+    print('Net force: {}'.format(net_force))
+    print('Acceleration: {}'.format(acceleration))
+    print('Velocity: {}'.format(vertical_velocity))
+    print('Depth: {}'.format(depth))
+#    print('PID {0}'.format(pid.get_output_value(depth)))
 
     output = pid.get_output_value(depth)
-    if output < -ball_buoyancy and number_of_balls > 0 and t - dropped_ball_time > 5.0 and new_drag > 0:
+
+    # drop a single ball
+    if (output < -ball_buoyancy) and (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (new_drag > 0):
         dropped_ball_time = t
         number_of_balls -= 1
 
-    if drag > 0:
-        vertical_velocity = math.pow(drag/(drag_coefficient*seawater_density*(area/2)), 0.5)
-    else:
-        vertical_velocity = -math.pow(-drag/(drag_coefficient*seawater_density*(area/2)), 0.5)
-
-    depth = vertical_velocity*time_interval+depth
+    # Here, it is assuming is always at terminal speed, which is not necessarily true, specially when you have just dropped a ball.
+    # Still, it should be pretty close for small ball masses.
+    # The main concern is that the velocity profile  
+#    if drag_force > 0:
+#        vertical_velocity = math.pow(drag_force/(drag_coefficient*seawater_density*(area/2)), 0.5)
+#    else:
+#        vertical_velocity = -math.pow(-drag_force/(drag_coefficient*seawater_density*(area/2)), 0.5)
     
     if depth < 1.5:
         break
 
+    acceleration_dive_history.append(acceleration)
     time_dive_history.append((time_interval+t))
     velocity_dive_history.append(vertical_velocity)
     depth_dive_history.append(depth)
-    net_buoyancy_dive_history.append((weight_total-buoyancy)/9.81)
-    drag_dive_history.append(drag)
+    net_buoyancy_dive_history.append(net_force)
+    drag_dive_history.append(drag_force)
     balls_history.append(number_of_balls)
     t += time_interval
 
+####################################################################
+# Ends current simulation, and start dumping data to the output file
 output_df = pd.DataFrame(
     {'time': time_dive_history,
+     'acceleration': acceleration_dive_history,
      'velocity': velocity_dive_history,
      'depth': depth_dive_history,
      'drag': drag_dive_history,
@@ -139,15 +167,18 @@ output_df = pd.DataFrame(
 
 output_df.to_csv('driftcam_simulation.csv', encoding='utf-8', index=False)
 
+
+####################################################################
+# Creates plots using Plotly
 trace1 = go.Scatter(y=depth_dive_history, x=time_dive_history, name='Depth')
 trace2 = go.Scatter(y=velocity_dive_history, x=time_dive_history, name='Velocity')
-trace3 = go.Scatter(y=drag_dive_history, x=time_dive_history, name='Drag')
+trace3 = go.Scatter(y=acceleration_dive_history, x=time_dive_history, name='Acceleration')
 trace4 = go.Scatter(y=balls_history, x=time_dive_history, name='Balls')
 
 data = [trace1, trace2, trace3, trace4]
 
 fig = tools.make_subplots(rows=2, cols=2, subplot_titles=('Depth', 'Velocity',
-                                                          'Drag', 'Balls'))
+                                                          'Acceleration', 'Balls'))
 fig.append_trace(trace1, 1, 1)
 fig.append_trace(trace2, 1, 2)
 fig.append_trace(trace3, 2, 1)
@@ -160,9 +191,9 @@ fig['layout']['xaxis4'].update(title='Time (s)')
 
 fig['layout']['yaxis1'].update(title='Depth (m)', autorange='reversed')
 fig['layout']['yaxis2'].update(title='Velocity (m/s)')
-fig['layout']['yaxis3'].update(title='Drag force (N)')
+fig['layout']['yaxis3'].update(title='Acceleration (m/s2)')
 fig['layout']['yaxis4'].update(title='Number of balls (#)')
 
 fig['layout'].update(title='Customizing Subplot Axes')
 
-py.plot(fig)    
+py.plot(fig)
