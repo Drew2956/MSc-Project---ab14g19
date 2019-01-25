@@ -111,6 +111,8 @@ while depth < 800 and t < 5000:     # limit simulation time and depth (due to sp
     ball_buoyancy = ball_volume*gravity*seawater_density    # weight of the displaced seawater volume (per ball)
 #    seawater_density = get_interpolated(df, 'Depth', depth, 'Density')
 
+    ####################################
+    ## BODY-FLUID INTERACTION SIMULATION
     buoyancy_force = total_volume*gravity*seawater_density
     drag_force = 0.5*drag_coefficient*seawater_density*area*abs(vertical_velocity)*vertical_velocity
     # calculate the actual net force experienced by the platform
@@ -122,11 +124,11 @@ while depth < 800 and t < 5000:     # limit simulation time and depth (due to sp
 #    force_drag = total_weight - force_buoyancy  # assume it acelerates to terminal velocity
     depth = depth + vertical_velocity*time_interval
 
-   # TODO: Discuss how to actually define the trigger 
-    # It still depends on the seawater_density!!!
+    ####################################
+    ## DUMB VELOCITY ESTIMATOR IF WE DISPENSE ANOTHER BALLAST UNIT
     future_velocity = vertical_velocity + 6*(vertical_velocity-last_velocity)
 
-    new_drag = (main_mass + ball_mass * (number_of_balls-1) + flotation_mass)*gravity - ((flotation_volume + main_volume + ball_volume * (number_of_balls-1))*gravity*seawater_density)
+#    new_drag = (main_mass + ball_mass * (number_of_balls-1) + flotation_mass)*gravity - ((flotation_volume + main_volume + ball_volume * (number_of_balls-1))*gravity*seawater_density)
     # drop a single ball
     if (depth > 500) and (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (future_velocity > 0):
 #    if (depth > 500) and (output < -ball_buoyancy) and (number_of_balls > 1) and (t - dropped_ball_time) > min_dispensing_time and (new_drag > 1):
