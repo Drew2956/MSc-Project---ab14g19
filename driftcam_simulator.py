@@ -125,34 +125,39 @@ while depth < 800 and t < 5000:     # limit simulation time and depth (due to sp
     depth = depth + vertical_velocity*time_interval
 
     ####################################
-    ## DUMB VELOCITY ESTIMATOR IF WE DISPENSE ANOTHER BALLAST UNIT
+    ## FUTURE VELOCITY ESTIMATOR
     future_velocity = vertical_velocity + 6*(vertical_velocity-last_velocity)
 
-#    new_drag = (main_mass + ball_mass * (number_of_balls-1) + flotation_mass)*gravity - ((flotation_volume + main_volume + ball_volume * (number_of_balls-1))*gravity*seawater_density)
-    # drop a single ball
+    # Here we check if we need to dispense a ball, the conditions are:
+    # - The number of available balls is still positive
+    # - The time since last ball dispensed is higher than our minimum dispensing time
+    # - The estimated future velocity will be positive (we can keep diving)
+    # - Depth > some reference value, this is temporal, as we will trigger the diving / braking transition given the altitude (H)
+
+    # TODO: estimate power consumption for each dispensing action (depth invariant, just need to multiply by the expected power consumed per ball drop action)
+
     if (depth > 500) and (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (future_velocity > 0):
-#    if (depth > 500) and (output < -ball_buoyancy) and (number_of_balls > 1) and (t - dropped_ball_time) > min_dispensing_time and (new_drag > 1):
+        #  reset dropped ball timestamp
         dropped_ball_time = t
+        # drop a single ball
         number_of_balls -= 1
         last_velocity = vertical_velocity
 
+    # Use a Finite State Machine to start the thruster controlled phase once the braking phase has finished
+
     print('-------------------------------')
     print('Time {0}'.format(t))
-    print('Density {0}'.format(seawater_density))
+    print('Density {:4f}'.format(seawater_density))
     print('# Balls {0}'.format(number_of_balls))
-    print('Weight: {}'.format(total_weight))
-    print('Buoyancy: {}'.format(buoyancy_force))
-    print('Drag: {}'.format(drag_force))
+    print('Weight: {:4f}'.format(total_weight))
+    print('Buoyancy: {:4f}'.format(buoyancy_force))
+    print('Drag: {:5f}'.format(drag_force))
     print('Net force: {}'.format(net_force))
     print('Acceleration: {}'.format(acceleration))
-    print('Velocity: {}'.format(vertical_velocity))
-    print('Depth: {}'.format(depth))
-#    print('PID {0}'.format(pid.get_output_value(depth)))
+    print('Velocity: {:5f}'.format(vertical_velocity))
+    print('Depth: {:2f}'.format(depth))
 
-    output = pid.get_output_value(depth)
-
-
-    # to avoid non-valid cases    
+    # to avoid non-valid cases, such as emerging from the water
     if depth < 0:
         break
 
