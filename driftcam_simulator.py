@@ -106,6 +106,7 @@ net_buoyancy_dive_history = []
 drag_dive_history = []
 balls_history = []
 acceleration_dive_history = []
+thruster_history = []
 
 #pid = SimplePID(590, -100, 100, 10, 0.1, 0.001 )
 
@@ -114,7 +115,13 @@ last_velocity = vertical_velocity
 print ("\nRunning simulation ...")
 mode = 'diving'
 
-while depth < floor_profundity and t < simulation_time:     # limit simulation time and depth (due to speed constraints)
+thruster_force = 0
+target_altitude = configuration['control']['target_altitude']
+
+kp = 0.5
+max_depth = 700
+#while t < simulation_time:     # limit simulation time and depth (due to speed constraints)
+while depth < max_depth and t < simulation_time:     # limit simulation time and depth (due to speed constraints)
 
     # replace weight with mass
     microballast_mass = ball_mass * number_of_balls # kg
@@ -137,7 +144,7 @@ while depth < floor_profundity and t < simulation_time:     # limit simulation t
     buoyancy_force = total_volume*gravity*seawater_density
     drag_force = 0.5*drag_coefficient*seawater_density*area*abs(vertical_velocity)*vertical_velocity
     # calculate the actual net force experienced by the platform
-    net_force = total_weight - buoyancy_force - drag_force
+    net_force = total_weight - buoyancy_force - drag_force - thruster_force
     # The real accelaration is obtained from F = m . a 
     acceleration = net_force / total_mass
     # The velocity is calculated via Euler integration for the acceleration 
@@ -160,26 +167,32 @@ while depth < floor_profundity and t < simulation_time:     # limit simulation t
     # - Depth > some reference value, this is temporal, as we will trigger the diving / braking transition given the altitude (H)
 
     # TODO: estimate power consumption for each dispensing action (depth invariant, just need to multiply by the expected power consumed per ball drop action)
+    current_altitude = floor_profundity - depth
 
-    if (depth > (floor_profundity - braking_altitude)) and (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (future_velocity > 0):
+    if (current_altitude < braking_altitude) and (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (future_velocity > 0):
         if (mode == 'diving'):
             print ("Starting braking procedure at:")
             print ("Time: ", t, "\tDepth: ", depth)
             mode = 'braking'
-        #  reset dropped ball timestamp
-        dropped_ball_time = t
-        # drop a single ball
-        number_of_balls -= 1
-        last_velocity = vertical_velocity
+        elif (mode == 'braking'):
+            #  reset dropped ball timestamp
+            dropped_ball_time = t
+            # drop a single ball
+            number_of_balls -= 1
+            last_velocity = vertical_velocity
 
     # if after 10x system constant (tau), then we can assume
-    if (t - dropped_ball_time) > (5*tau) and (mode == 'braking'):
+    elif (t - dropped_ball_time) > (5*tau) and (mode == 'braking'):
         mode = 'start_control'
 
-    if mode == 'start_control':
+    elif mode == 'start_control':
         print ("Control mode started")
         mode = 'control'
         print ("Time: ", t, "\tDepth: ", depth)
+
+    if mode == 'control':
+        altitude_error =  current_altitude - target_altitude
+        thruster_force = -kp*altitude_error 
 
     # Use a Finite State Machine to start the thruster controlled phase once the braking phase has finished
 
@@ -202,6 +215,7 @@ while depth < floor_profundity and t < simulation_time:     # limit simulation t
     depth_dive_history.append(depth)
     net_buoyancy_dive_history.append(net_force)
     drag_dive_history.append(drag_force)
+    thruster_history.append(thruster_force)
     balls_history.append(number_of_balls)
     t += time_step
 
@@ -228,13 +242,13 @@ output_df.to_csv(output_file, encoding='utf-8', index=False)
 # Creates plots using Plotly
 trace1 = go.Scatter(y=depth_dive_history, x=time_dive_history, name='Depth')
 trace2 = go.Scatter(y=velocity_dive_history, x=time_dive_history, name='Velocity')
-trace3 = go.Scatter(y=acceleration_dive_history, x=time_dive_history, name='Acceleration')
+trace3 = go.Scatter(y=thruster_history, x=time_dive_history, name='Thruster')
 trace4 = go.Scatter(y=balls_history, x=time_dive_history, name='Balls')
 
 data = [trace1, trace2, trace3, trace4]
 
 fig = tools.make_subplots(rows=2, cols=2, subplot_titles=('Depth', 'Velocity',
-                                                          'Acceleration', 'Balls'))
+                                                          'Thruster', 'Balls'))
 fig.append_trace(trace1, 1, 1)
 fig.append_trace(trace2, 1, 2)
 fig.append_trace(trace3, 2, 1)
@@ -247,7 +261,7 @@ fig['layout']['xaxis4'].update(title='Time (s)')
 
 fig['layout']['yaxis1'].update(title='Depth (m)', autorange='reversed')
 fig['layout']['yaxis2'].update(title='Velocity (m/s)')
-fig['layout']['yaxis3'].update(title='Acceleration (m/s2)')
+fig['layout']['yaxis3'].update(title='Thruster (N)')
 fig['layout']['yaxis4'].update(title='Number of balls (#)')
 
 fig['layout'].update(title='Customizing Subplot Axes')

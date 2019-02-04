@@ -8,7 +8,7 @@ density_profile: "data/ctd/density_profile.csv"
 input:
   start_depth: 10.0 # [m] initial depth 
   start_velocity: 0.0 # [m/s] initial vertical velocity
-  eta:  0.03       # Value from D1-1 base design
+  eta:  0.04       # Value from D1-1 base design
 
   horizontal_speed: 2.5 # [cm/s] horizontal speed, for profile simulation
 
