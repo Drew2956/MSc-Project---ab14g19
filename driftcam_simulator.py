@@ -69,7 +69,8 @@ flotation_volume = flotation_mass / flotation_density
 # TODO: The initial number of balls must be given accordingly to the designed ETA 
 # number_of_balls = 90 # initial number of balls
 # Number of balls is given by diving the total ballast mass by the mass of a single unit
-number_of_balls = math.ceil(((main_mass + flotation_mass) * eta) / ball_mass) + 1
+ballast_mass = configuration['input']['ballast_mass']
+number_of_balls = math.ceil(ballas_mass / ball_mass)
 
 braking_altitude = configuration['control']['braking_altitude']
 floor_profundity = configuration['control']['floor_profundity']
@@ -84,9 +85,9 @@ print ("\tMass[kg]: ", main_mass, "\tVolume[m3]: ", main_volume)
 print (" * Flotation:")
 print ("\tMass[kg]: ", flotation_mass, "[kg]\tVolume[m3]: ", flotation_volume)
 print (" * Ballast:")
-print ("\tMass[kg]: ", str(ball_mass * number_of_balls), "\tDiameter[mm]: ", 1000*ball_diameter, "\tNumber: ", str(number_of_balls))
+print ("\tMass[kg]: ", ballas_mass, "\tDiameter[mm]: ", 1000*ball_diameter, "\tNumber: ", str(number_of_balls))
 
-print ("----------------------------------")
+print ("++++++++++++++++++++++++++++++++++")
 print ("Simulation parameters:")
 print (" * Initial conditions:")
 print ("\tDepth[m]: ", str(depth), "\tVelocity[m/s]: ", str(vertical_velocity))
@@ -118,10 +119,11 @@ mode = 'diving'
 thruster_force = 0
 target_altitude = configuration['control']['target_altitude']
 
+keep_running = True
 kp = 0.5
 max_depth = 700
 #while t < simulation_time:     # limit simulation time and depth (due to speed constraints)
-while depth < max_depth and t < simulation_time:     # limit simulation time and depth (due to speed constraints)
+while depth < max_depth and t < simulation_time and (keep_running == True):     # limit simulation time and depth (due to speed constraints)
 
     # replace weight with mass
     microballast_mass = ball_mass * number_of_balls # kg
@@ -129,7 +131,7 @@ while depth < max_depth and t < simulation_time:     # limit simulation time and
 
     # complete system volume: platform + flotation + microballasts
     total_volume = flotation_volume + main_volume + microballast_volume
-    total_mass = (main_mass + microballast_mass + flotation_mass)
+    total_mass = main_mass + microballast_mass + flotation_mass
     total_weight = total_mass*gravity
 
     ####################
@@ -137,7 +139,6 @@ while depth < max_depth and t < simulation_time:     # limit simulation time and
     seawater_density = density_table['density'][int (math.floor(depth))]
 
     ball_buoyancy = ball_volume*gravity*seawater_density    # weight of the displaced seawater volume (per ball)
-#    seawater_density = get_interpolated(df, 'Depth', depth, 'Density')
 
     ####################################
     ## BODY-FLUID INTERACTION SIMULATION
@@ -154,6 +155,8 @@ while depth < max_depth and t < simulation_time:     # limit simulation time and
 
     # to avoid non-valid cases, such as emerging from the water
     if depth < 0:
+        print ("Simulation halted: DEPTH < 0\n\tPlatform surfaced at ", t, " seconds")
+        keep_running = False
         break
 
     ####################################
@@ -168,6 +171,10 @@ while depth < max_depth and t < simulation_time:     # limit simulation time and
 
     # TODO: estimate power consumption for each dispensing action (depth invariant, just need to multiply by the expected power consumed per ball drop action)
     current_altitude = floor_profundity - depth
+
+
+
+
 
     if (current_altitude < braking_altitude) and (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (future_velocity > 0):
         if (mode == 'diving'):
