@@ -1,0 +1,26 @@
+Comment: 'This file contains metadata about the context of the generated output for:'
+Filename: b0847833_dpd.csv
+Location:
+  Depth_max: -1
+  Latitude: 0
+  Longitude: 0
+  Name: Put the location name here
+Date:
+  Date: YYYY-MM-DD
+  Time: HH:MM:SS
+Device:
+  Name: device_name
+  Type: device_type
+Data:
+  density:
+    name: Density
+    unit: kg_m3
+    default: 0
+  depth:
+    name: Depth
+    unit: m
+    default: 0
+  pressure:
+    name: Pressure
+    unit: dbar
+    default: 0
