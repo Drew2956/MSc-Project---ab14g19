@@ -39,7 +39,7 @@ input:
   flotation_density: 400.0 # [kg/m3]
 
 control:
-  mission_duration: 500 # [s] time in control mode before triggering surfacing mode
+  mission_duration: 800 # [s] time in control mode before triggering surfacing mode
   floor_profundity: 600   # [m] fixed simulation profundity
   braking_altitude: 100    # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
   target_altitude: 2      # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
