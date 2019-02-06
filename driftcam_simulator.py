@@ -213,10 +213,10 @@ while (depth < floor_profundity) and (t < simulation_time) and (keep_running == 
     # CONTROL MODE: active altitude control with the thruster
     elif mode == 'CONTROL':
         altitude_error =  current_altitude - target_altitude
-        print (altitude_error)
+        # print (altitude_error)
         #thruster_force = -_kp*altitude_error 
-        if abs(altitude_error) > 0.1:
-            print ("Controlling...........")
+        if abs(altitude_error) > 0.001:
+            # print ("Controlling...........")
             pid_out = pid.get_output_value(current_altitude)
             thruster_force = pid_out
 
