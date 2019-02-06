@@ -11,11 +11,6 @@ from plotly import tools
 import plotly.graph_objs as go
 # from SimplePID import SimplePID
 
-# TODO: repetitive linear searchs in the depth/density fields for the interpolation slow down the whole simulation. Perhaps is better 
-# to perform a single fine grain interpolation, and then work with a down-to-cm resolution lookup table
-
-# TODO: fix data headers for new testing data (from ctd_seawater_density calculation scripts) as they included the units in the variable name
-
 print ("Driftcam diving simulator")
 print ("Loading configuration.yaml...")
 config_file = "configuration.yaml"
@@ -35,18 +30,18 @@ density_table = pd.read_csv(configuration['density_profile'])
 depth = configuration['input']['start_depth']  
 vertical_velocity = configuration['input']['start_velocity']   
 t = 0.0
+dropped_ball_time = 0   # timestamp of last dropped ball event
 
-# Use first value from the lookup table
-seawater_density = density_table['density'][int (math.floor(depth))]
+# Use first value from the lookup table. In fixed seawater simulations, this will be the constant value to be used
+seawater_density = density_table['Density[kg_m3]'][int (math.floor(depth))]
 eta = configuration['input']['eta']
 
-# Other simulation parameters 
+# Solver parameters
 time_step = configuration['input']['time_step']     # Euler solver time step. Ideal step values: 0.1 , as smaller steps doesn't provide any noticeable change in system dynamics response
 simulation_time = configuration['input']['simulation_time']  # End of simulation time
 min_dispensing_time = configuration['input']['min_dispensing_time'] # minimum admissible time between drop ball event
-dropped_ball_time = 0   # timestamp of last dropped ball event
 
-# define constants andd platform dimensions
+# define platform specific parameters
 gravity = configuration['input']['gravity']
 drag_coefficient = configuration['input']['drag_coefficient']
 radius = configuration['input']['radius']
@@ -61,20 +56,16 @@ ball_volume = 4/3*math.pi*math.pow(ball_diameter/2,3)
 ball_density = configuration['input']['ball_density'] # kg / m3 # ball_mass = 0.016728 # kg 
 ball_mass = ball_volume * ball_density
 
-# TODO: The flotation mass must be updated with the ETA
 flotation_mass = configuration['input']['flotation_mass'] # kg
 flotation_density = configuration['input']['flotation_density'] # kg/m3
 flotation_volume = flotation_mass / flotation_density
 
-# TODO: The initial number of balls must be given accordingly to the designed ETA 
-# number_of_balls = 90 # initial number of balls
-# Number of balls is given by diving the total ballast mass by the mass of a single unit
 ballast_mass = configuration['input']['ballast_mass']
-number_of_balls = math.ceil(ballas_mass / ball_mass)
+number_of_balls = math.ceil(ballast_mass / ball_mass)
 
+# TODO: floor can be a fixed value or a transect profile
 braking_altitude = configuration['control']['braking_altitude']
 floor_profundity = configuration['control']['floor_profundity']
-
 
 #######################################
 # Print summary of simulation parameters
@@ -85,7 +76,7 @@ print ("\tMass[kg]: ", main_mass, "\tVolume[m3]: ", main_volume)
 print (" * Flotation:")
 print ("\tMass[kg]: ", flotation_mass, "[kg]\tVolume[m3]: ", flotation_volume)
 print (" * Ballast:")
-print ("\tMass[kg]: ", ballas_mass, "\tDiameter[mm]: ", 1000*ball_diameter, "\tNumber: ", str(number_of_balls))
+print ("\tMass[kg]: ", ballast_mass, "\tDiameter[mm]: ", 1000*ball_diameter, "\tNumber: ", str(number_of_balls), "\tETA: ", eta)
 
 print ("++++++++++++++++++++++++++++++++++")
 print ("Simulation parameters:")
@@ -110,17 +101,20 @@ acceleration_dive_history = []
 thruster_history = []
 
 #pid = SimplePID(590, -100, 100, 10, 0.1, 0.001 )
-
 last_velocity = vertical_velocity
 
 print ("\nRunning simulation ...")
-mode = 'diving'
 
+mode = 'diving'
 thruster_force = 0
 target_altitude = configuration['control']['target_altitude']
 
 keep_running = True
-kp = 0.5
+
+_kp = 0.5
+_ki = 0.1
+_kd = 0.0
+
 max_depth = 700
 #while t < simulation_time:     # limit simulation time and depth (due to speed constraints)
 while depth < max_depth and t < simulation_time and (keep_running == True):     # limit simulation time and depth (due to speed constraints)
@@ -136,7 +130,7 @@ while depth < max_depth and t < simulation_time and (keep_running == True):     
 
     ####################
     # See if it is possible to improve speed while doing the density search in the input vector (already ordered)
-    seawater_density = density_table['density'][int (math.floor(depth))]
+    seawater_density = density_table['Density[kg_m3]'][int (math.floor(depth))]
 
     ball_buoyancy = ball_volume*gravity*seawater_density    # weight of the displaced seawater volume (per ball)
 
