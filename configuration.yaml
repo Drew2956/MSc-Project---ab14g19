@@ -6,7 +6,7 @@
 density_profile: "data/ctd/interpolated/5K_ctd_average.csv"
 
 input:
-  start_depth: 10.0 # [m] initial depth 
+  start_depth: 5.0 # [m] initial depth 
   start_velocity: 0.0 # [m/s] initial vertical velocity
   eta:  0.02       # Value from D1-1 base design
 
@@ -15,15 +15,15 @@ input:
   seawater_density: 1024.0  # for those fixed density simulation cases [kg/m3]
 
   # Other simulation parameters 
-  time_step: 0.05      # [s] Euler solver time step. Ideal step values: 0.1 , as smaller steps doesn't provide any noticeable change in system dynamics response
-  min_dispensing_time: 5  # [s] minimum admissible time between drop ball event
+  time_step: 0.1      # [s] Euler solver time step. Ideal step values: 0.1 , as smaller steps doesn't provide any noticeable change in system dynamics response
+  min_dispensing_time: 1  # [s] minimum admissible time between drop ball event
 
   # variables you don't want to change unless you know what you're doing
   # define constants andd platform dimensions
   gravity: 9.81           # [m/s2]
   drag_coefficient: 1.2   # Geometry defined 
   radius: 0.2             # [m] transversal section
-  tau : 6                 # [m] system dynamic response constant
+  tau : 7                 # [m] system dynamic response constant
   simulation_time: 6500   # [s] total simulation time
 
   # Using parameters from Al6061T housing
@@ -39,12 +39,13 @@ input:
   flotation_density: 400.0 # [kg/m3]
 
 control:
-  mission_duration: 800 # [s] time in control mode before triggering surfacing mode
-  floor_profundity: 600   # [m] fixed simulation profundity
-  braking_altitude: 100    # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
+  mission_duration: 2000 # [s] time in control mode before triggering surfacing mode
+  floor_profundity: 300   # [m] fixed simulation profundity
+  braking_altitude: 25    # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
   target_altitude: 2      # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
                           # it is equivalent to say when: altitude < target_altitude
 
 output:
-  file_preffix: "simulation"
+  file_preffix: "sim"
   file_extension: ".csv"
+  file_path: "data/simulations/"

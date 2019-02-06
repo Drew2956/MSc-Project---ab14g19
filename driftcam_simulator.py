@@ -96,7 +96,7 @@ density_id = density_id.split("/")[-1]
 
 floor_id = str(floor_profundity)
 
-simulation_details = "_e" + str(eta) + "_d" + str(ball_diameter) + "_s" + str(density_id) + "_f" + floor_id
+simulation_details = "_e" + str(eta) + "_d" + str(ball_diameter) + "_c" + str(density_id) + "_t" + floor_id
 
 #  Empty placeholders for incoming simulation data
 time_dive_history = []
@@ -118,18 +118,25 @@ print ("Time: ", t, "\tDepth: ", depth)
 mode = 'DIVING'
 
 thruster_force = 0
+safety_factor_altitude = 1.0
 target_altitude = configuration['control']['target_altitude']
 
 # Setting up the PID controller
-_kp = 0.2
-_ki = 0.001
-_kd = 0.1
+_ku = 20   # Ultimate gain (Ziegler-Nichols): 300
+_Tu = 2.1   # Oscillation period (Ziegler-Nichols): 2.1 s
+#_kp = _ku / 1.7
+#_ki = _Tu / 2
+#_kd = _Tu / 8
+_kp = 2.3
+_ki = 0.02
+_kd = 4.5
+
 pid = SimplePID(target_altitude, -100, 100, _kp, _ki, _kd, time_step * 1000 )
 
 keep_running = True
 
 #while t < simulation_time:     # limit simulation time and depth (due to speed constraints)
-while (depth < floor_profundity) and (t < simulation_time) and (keep_running == True):     # limit simulation time and depth (due to speed constraints)
+while (depth < (floor_profundity + 10)) and (t < simulation_time) and (keep_running == True):     # limit simulation time and depth (due to speed constraints)
 
     # replace weight with mass
     microballast_mass = ball_mass * number_of_balls # kg
@@ -152,7 +159,7 @@ while (depth < floor_profundity) and (t < simulation_time) and (keep_running == 
     drag_force = 0.5*drag_coefficient*seawater_density*area*abs(vertical_velocity)*vertical_velocity
     # calculate the actual net force experienced by the platform
     net_force = total_weight - buoyancy_force - drag_force - thruster_force
-    # The real accelaration is obtained from F = m . a 
+    # The real acceleration is obtained from F = m . a 
     acceleration = net_force / total_mass
     # The velocity is calculated via Euler integration for the acceleration 
     vertical_velocity = vertical_velocity + acceleration*time_step
@@ -167,7 +174,7 @@ while (depth < floor_profundity) and (t < simulation_time) and (keep_running == 
 
     ####################################
     ## FUTURE VELOCITY ESTIMATOR
-    future_velocity = vertical_velocity + tau*(vertical_velocity-last_velocity)
+    future_velocity = vertical_velocity + 2*tau*(vertical_velocity-last_velocity)
 
     # Here we check if we need to dispense a ball, the conditions are:
     # - The number of available balls is still positive
@@ -190,7 +197,7 @@ while (depth < floor_profundity) and (t < simulation_time) and (keep_running == 
     # ------------------------------------------------------------------------------------------------------
     # BRAKING MODE: dispensing balls to achieve close to neutral buoyancy, dropping diving ballast (wd)
     elif mode == 'BRAKING':
-        if (current_altitude < target_altitude):
+        if (current_altitude < (target_altitude * safety_factor_altitude)):
             print ("Starting CONTROL mode")
             mode = 'CONTROL'
             start_control_time = t  # use current timestamp as start time for the control phase
@@ -202,6 +209,7 @@ while (depth < floor_profundity) and (t < simulation_time) and (keep_running == 
             # - Elapsed time since last drop > minimum dispensing time (defined in the configuration)
             # - Estimated new velocity is still positive, i.e. it will keep diving with the current density and ballast
             if (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (future_velocity > 0):
+#            if (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (acceleration > 0):
                 #  reset dropped ball timestamp
                 dropped_ball_time = t
                 # drop a single ball
@@ -215,10 +223,10 @@ while (depth < floor_profundity) and (t < simulation_time) and (keep_running == 
         altitude_error =  current_altitude - target_altitude
         # print (altitude_error)
         #thruster_force = -_kp*altitude_error 
-        if abs(altitude_error) > 0.001:
-            # print ("Controlling...........")
-            pid_out = pid.get_output_value(current_altitude)
-            thruster_force = pid_out
+        # if abs(altitude_error) > 0.1:
+        # print ("Controlling...........")
+        pid_out = pid.get_output_value(current_altitude)
+        thruster_force = pid_out
 
         # we could check if the ellapsed time in CONTROL phase is higher than our mission time
         time_controlling = t - start_control_time
@@ -273,8 +281,8 @@ output_df = pd.DataFrame(
      'balls': balls_history
     })
 
-output_file = configuration['output']['file_preffix'] + simulation_details + configuration['output']['file_extension']
-output_file_html = "plot" + simulation_details + ".html"
+output_file = configuration['output']['file_path'] + configuration['output']['file_preffix'] + simulation_details + configuration['output']['file_extension']
+output_file_html = configuration['output']['file_path'] + "plot" + simulation_details + ".html"
 
 output_df.to_csv(output_file, encoding='utf-8', index=False)
 
