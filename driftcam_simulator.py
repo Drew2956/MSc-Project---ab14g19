@@ -9,7 +9,7 @@ import yaml
 import plotly.offline as py
 from plotly import tools
 import plotly.graph_objs as go
-# from SimplePID import SimplePID
+from SimplePID import SimplePID
 
 print ("Driftcam diving simulator")
 print ("Loading configuration.yaml...")
@@ -109,20 +109,24 @@ balls_history = []
 acceleration_dive_history = []
 thruster_history = []
 
-#pid = SimplePID(590, -100, 100, 10, 0.1, 0.001 )
 last_velocity = vertical_velocity
 
-print ("\nRunning simulation ...")
+print ("\nRunning simulation ...\n--------------------")
 
+print ("\nStarting DIVING mode")
+print ("Time: ", t, "\tDepth: ", depth)
 mode = 'DIVING'
+
 thruster_force = 0
 target_altitude = configuration['control']['target_altitude']
 
-keep_running = True
+# Setting up the PID controller
+_kp = 0.2
+_ki = 0.001
+_kd = 0.1
+pid = SimplePID(target_altitude, -100, 100, _kp, _ki, _kd, time_step * 1000 )
 
-_kp = 0.5
-_ki = 0.1
-_kd = 0.0
+keep_running = True
 
 #while t < simulation_time:     # limit simulation time and depth (due to speed constraints)
 while (depth < floor_profundity) and (t < simulation_time) and (keep_running == True):     # limit simulation time and depth (due to speed constraints)
@@ -209,7 +213,13 @@ while (depth < floor_profundity) and (t < simulation_time) and (keep_running == 
     # CONTROL MODE: active altitude control with the thruster
     elif mode == 'CONTROL':
         altitude_error =  current_altitude - target_altitude
-        thruster_force = -_kp*altitude_error 
+        print (altitude_error)
+        #thruster_force = -_kp*altitude_error 
+        if abs(altitude_error) > 0.1:
+            print ("Controlling...........")
+            pid_out = pid.get_output_value(current_altitude)
+            thruster_force = pid_out
+
         # we could check if the ellapsed time in CONTROL phase is higher than our mission time
         time_controlling = t - start_control_time
         if (time_controlling > mission_duration):
