@@ -24,7 +24,7 @@ input:
   drag_coefficient: 1.2   # Geometry defined 
   radius: 0.2             # [m] transversal section
   tau : 7                 # [m] system dynamic response constant
-  simulation_time: 6500   # [s] total simulation time
+  simulation_time: 10000   # [s] total simulation time
 
   # Using parameters from Al6061T housing
   main_mass: 27.40        # [kg] mass of the main body
@@ -40,7 +40,7 @@ input:
 
 control:
   mission_duration: 2000 # [s] time in control mode before triggering surfacing mode
-  floor_profundity: 300   # [m] fixed simulation profundity
+  floor_profundity: 1000   # [m] fixed simulation profundity
   braking_altitude: 25    # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
   target_altitude: 2      # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
                           # it is equivalent to say when: altitude < target_altitude
