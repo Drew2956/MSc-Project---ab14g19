@@ -3,7 +3,7 @@
 
 # File containing density vs depth data, already interpolated at 1m interval.
 # This will be used as a lookup table for a faster simulation, instead of recurrent interpolation at simulation time
-density_profile: "data/ctd/interpolated/J13_KAIKO_00679_dpd_interpolated.csv"
+density_profile: "data/ctd/interpolated/5K_ctd_average.csv"
 
 input:
   start_depth: 10.0 # [m] initial depth 
@@ -15,7 +15,7 @@ input:
   seawater_density: 1024.0  # for those fixed density simulation cases [kg/m3]
 
   # Other simulation parameters 
-  time_step: 0.1      # [s] Euler solver time step. Ideal step values: 0.1 , as smaller steps doesn't provide any noticeable change in system dynamics response
+  time_step: 0.05      # [s] Euler solver time step. Ideal step values: 0.1 , as smaller steps doesn't provide any noticeable change in system dynamics response
   min_dispensing_time: 5  # [s] minimum admissible time between drop ball event
 
   # variables you don't want to change unless you know what you're doing
@@ -24,7 +24,7 @@ input:
   drag_coefficient: 1.2   # Geometry defined 
   radius: 0.2             # [m] transversal section
   tau : 6                 # [m] system dynamic response constant
-  simulation_time: 6000   # [s] total simulation time
+  simulation_time: 6500   # [s] total simulation time
 
   # Using parameters from Al6061T housing
   main_mass: 27.40        # [kg] mass of the main body
