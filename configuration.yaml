@@ -3,7 +3,7 @@
 
 # File containing density vs depth data, already interpolated at 1m interval.
 # This will be used as a lookup table for a faster simulation, instead of recurrent interpolation at simulation time
-density_profile: "data/ctd/J4_URSM_00150_dpd.csv"
+density_profile: "data/ctd/interpolated/J13_KAIKO_00679_dpd_interpolated.csv"
 
 input:
   start_depth: 10.0 # [m] initial depth 
@@ -39,7 +39,7 @@ input:
   flotation_density: 400.0 # [kg/m3]
 
 control:
-  control_time: 300 # [s] time in control mode before triggering surfacing mode
+  mission_duration: 500 # [s] time in control mode before triggering surfacing mode
   floor_profundity: 600   # [m] fixed simulation profundity
   braking_altitude: 100    # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
   target_altitude: 2      # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude

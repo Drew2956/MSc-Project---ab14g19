@@ -22,7 +22,9 @@ with open(config_file,'r') as stream:
 
 print ("Loading density profile from: ", configuration['density_profile'])
 # read input data (density profile)
-density_table = pd.read_csv(configuration['density_profile'])
+density_table = pd.read_csv(configuration['density_profile'], sep='\t', header=None)
+#print (density_table)
+#time.sleep(5)
 # This file must an already interpolated dataset, at 1.0 m depth resolution for faster calculations
 # By doing this, the interpolation is done via lookup table, starting from 0 meter index
 
@@ -33,7 +35,7 @@ t = 0.0
 dropped_ball_time = 0   # timestamp of last dropped ball event
 
 # Use first value from the lookup table. In fixed seawater simulations, this will be the constant value to be used
-seawater_density = density_table['Density[kg_m3]'][int (math.floor(depth))]
+seawater_density = density_table[1][int (math.floor(depth))]
 eta = configuration['input']['eta']
 
 # Solver parameters
@@ -66,6 +68,7 @@ number_of_balls = math.ceil(ballast_mass / ball_mass)
 # TODO: floor can be a fixed value or a transect profile
 braking_altitude = configuration['control']['braking_altitude']
 floor_profundity = configuration['control']['floor_profundity']
+mission_duration = configuration['control']['mission_duration']
 
 #######################################
 # Print summary of simulation parameters
@@ -83,7 +86,7 @@ print ("Simulation parameters:")
 print (" * Initial conditions:")
 print ("\tDepth[m]: ", str(depth), "\tVelocity[m/s]: ", str(vertical_velocity))
 print (" * Target:")
-print ("\tAltitude[m]: ", str(braking_altitude), "\tProfundity[m]: ", floor_profundity)
+print ("\tAltitude[m]: ", str(braking_altitude), "\tProfundity[m]: ", floor_profundity, "\tMission duration [s]: ", mission_duration)
 print (" * Solver:")
 print ("\tTime step[s]: ", time_step, "\tGravity[m/s2]: ", gravity, "\tDrag coeff: ", drag_coefficient)
 
@@ -105,7 +108,7 @@ last_velocity = vertical_velocity
 
 print ("\nRunning simulation ...")
 
-mode = 'diving'
+mode = 'DIVING'
 thruster_force = 0
 target_altitude = configuration['control']['target_altitude']
 
@@ -130,7 +133,7 @@ while depth < max_depth and t < simulation_time and (keep_running == True):     
 
     ####################
     # See if it is possible to improve speed while doing the density search in the input vector (already ordered)
-    seawater_density = density_table['Density[kg_m3]'][int (math.floor(depth))]
+    seawater_density = density_table[1][int (math.floor(depth))]
 
     ball_buoyancy = ball_volume*gravity*seawater_density    # weight of the displaced seawater volume (per ball)
 
@@ -166,36 +169,59 @@ while depth < max_depth and t < simulation_time and (keep_running == True):     
     # TODO: estimate power consumption for each dispensing action (depth invariant, just need to multiply by the expected power consumed per ball drop action)
     current_altitude = floor_profundity - depth
 
-
-
-
-
-    if (current_altitude < braking_altitude) and (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (future_velocity > 0):
-        if (mode == 'diving'):
-            print ("Starting braking procedure at:")
+    # ------------------------------------------------------------------------------------------------------
+    # DIVING MODE: default starting mode
+    if mode == 'DIVING':
+        # Check if current altitude is lower than braking_altitude. If so, we switch to BRAKING mode
+        if (current_altitude < braking_altitude):
+            print ("Starting BRAKING procedure mode")
             print ("Time: ", t, "\tDepth: ", depth)
-            mode = 'braking'
-        elif (mode == 'braking'):
-            #  reset dropped ball timestamp
-            dropped_ball_time = t
-            # drop a single ball
-            number_of_balls -= 1
-            last_velocity = vertical_velocity
+            mode = 'BRAKING'
 
-    # if after 10x system constant (tau), then we can assume
-    elif (t - dropped_ball_time) > (5*tau) and (mode == 'braking'):
-        mode = 'start_control'
+    # ------------------------------------------------------------------------------------------------------
+    # BRAKING MODE: dispensing balls to achieve close to neutral buoyancy, dropping diving ballast (wd)
+    elif mode == 'BRAKING':
+        if (current_altitude < target_altitude):
+            print ("Starting CONTROL mode")
+            mode = 'CONTROL'
+            start_control_time = t  # use current timestamp as start time for the control phase
+            print ("Time: ", t, "\tDepth: ", depth)
+        else:
+            # If we haven't reached the target_altitude, we check if we can keep dispensing balls
+            # The conditions are:
+            # - Number of balls still positive
+            # - Elapsed time since last drop > minimum dispensing time (defined in the configuration)
+            # - Estimated new velocity is still positive, i.e. it will keep diving with the current density and ballast
+            if (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time and (future_velocity > 0):
+                #  reset dropped ball timestamp
+                dropped_ball_time = t
+                # drop a single ball
+                number_of_balls -= 1
+                # update last reference vertical velocity, that is employed for future velocity estimation
+                last_velocity = vertical_velocity
 
-    elif mode == 'start_control':
-        print ("Control mode started")
-        mode = 'control'
-        print ("Time: ", t, "\tDepth: ", depth)
-
-    if mode == 'control':
+    # ------------------------------------------------------------------------------------------------------
+    # CONTROL MODE: active altitude control with the thruster
+    elif mode == 'CONTROL':
         altitude_error =  current_altitude - target_altitude
-        thruster_force = -kp*altitude_error 
+        thruster_force = -_kp*altitude_error 
+        # we could check if the ellapsed time in CONTROL phase is higher than our mission time
+        time_controlling = t - start_control_time
+        if (time_controlling > mission_duration):
+            print ("Starting SURFACING mode")
+            print ("Time: ", t, "\tDepth: ", depth)
+            mode = 'SURFACING'
+            # Turn off the thruster!
+            thruster_force = 0
 
-    # Use a Finite State Machine to start the thruster controlled phase once the braking phase has finished
+    # ------------------------------------------------------------------------------------------------------
+    # SURFACING MODE: passive surfacing procedure, where remaining ballast is dispensed (ws)
+    elif mode == 'SURFACING':
+        if (number_of_balls > 0) and (t - dropped_ball_time) > min_dispensing_time:
+                #  reset dropped ball timestamp
+                dropped_ball_time = t
+                # drop a single ball
+                number_of_balls -= 1
 
     # print('-------------------------------')
     # print('Time {0}'.format(t))
@@ -209,7 +235,6 @@ while depth < max_depth and t < simulation_time and (keep_running == True):     
     # print('Velocity: {:5f}'.format(vertical_velocity))
     # print('Depth: {:2f}'.format(depth))
 
-
     acceleration_dive_history.append(acceleration)
     time_dive_history.append((time_step+t))
     velocity_dive_history.append(vertical_velocity)
@@ -220,7 +245,7 @@ while depth < max_depth and t < simulation_time and (keep_running == True):     
     balls_history.append(number_of_balls)
     t += time_step
 
-
+print ("\nEnd of simulation. Depth: ", depth, " @ t: ", t)
 ####################################################################
 # Ends current simulation, and start dumping data to the output file
 output_df = pd.DataFrame(
@@ -231,7 +256,6 @@ output_df = pd.DataFrame(
      'drag': drag_dive_history,
      'balls': balls_history
     })
-
 
 output_file = configuration['output']['file_preffix'] + simulation_details + configuration['output']['file_extension']
 output_file_html = "plot" + simulation_details + ".html"
