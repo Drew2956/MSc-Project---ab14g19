@@ -91,12 +91,18 @@ print (" * Solver:")
 print ("\tTime step[s]: ", time_step, "\tGravity[m/s2]: ", gravity, "\tDrag coeff: ", drag_coefficient)
 
 # string used for the output file name (both CSV and HTML outputs)
-simulation_details = "_e" + str(eta) + "_d" + str(ball_diameter) + "_n" + str(number_of_balls)
+density_id = configuration['density_profile'].split("_")[0]
+density_id = density_id.split("/")[-1]
+
+floor_id = str(floor_profundity)
+
+simulation_details = "_e" + str(eta) + "_d" + str(ball_diameter) + "_s" + str(density_id) + "_f" + floor_id
 
 #  Empty placeholders for incoming simulation data
 time_dive_history = []
 velocity_dive_history = []
 depth_dive_history = []
+altitude_history = []
 net_buoyancy_dive_history = []
 drag_dive_history = []
 balls_history = []
@@ -118,9 +124,8 @@ _kp = 0.5
 _ki = 0.1
 _kd = 0.0
 
-max_depth = 700
 #while t < simulation_time:     # limit simulation time and depth (due to speed constraints)
-while depth < max_depth and t < simulation_time and (keep_running == True):     # limit simulation time and depth (due to speed constraints)
+while (depth < floor_profundity) and (t < simulation_time) and (keep_running == True):     # limit simulation time and depth (due to speed constraints)
 
     # replace weight with mass
     microballast_mass = ball_mass * number_of_balls # kg
@@ -239,6 +244,7 @@ while depth < max_depth and t < simulation_time and (keep_running == True):     
     time_dive_history.append((time_step+t))
     velocity_dive_history.append(vertical_velocity)
     depth_dive_history.append(depth)
+    altitude_history.append(current_altitude)
     net_buoyancy_dive_history.append(net_force)
     drag_dive_history.append(drag_force)
     thruster_history.append(thruster_force)
@@ -253,7 +259,7 @@ output_df = pd.DataFrame(
      'acceleration': acceleration_dive_history,
      'velocity': velocity_dive_history,
      'depth': depth_dive_history,
-     'drag': drag_dive_history,
+     'altitude': altitude_history,
      'balls': balls_history
     })
 
@@ -261,7 +267,6 @@ output_file = configuration['output']['file_preffix'] + simulation_details + con
 output_file_html = "plot" + simulation_details + ".html"
 
 output_df.to_csv(output_file, encoding='utf-8', index=False)
-
 
 ####################################################################
 # Creates plots using Plotly
