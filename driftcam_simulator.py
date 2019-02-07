@@ -84,6 +84,8 @@ else:
     floor_model = 'fixed'
     floor_profundity = 100
 
+_t1_floor_profundity = floor_profundity
+_t0_floor_profundity = floor_profundity
 #######################################
 # Print summary of simulation parameters
 print ("----------------------------------")
@@ -178,10 +180,11 @@ while (t < simulation_time) and (keep_running == True):     # limit simulation t
         # TODO: try/catch if we exceed the maximum transect length
         # WARNING: cheap and dirty low pass filter to avoid abrupt references changes
         # that will trigger spikes in the controller
-        last_floor_profundity = floor_profundity
-        new_floor_profundity = profundity_table[1][math.floor(horizontal_position*10)] + configuration['transect']['transect_profundity_offset']
+        _t2_floor_profundity = _t1_floor_profundity
+        _t1_floor_profundity = floor_profundity
+        _t0_floor_profundity = profundity_table[1][math.floor(horizontal_position*10)] + configuration['transect']['transect_profundity_offset']
 
-        floor_profundity = 0.005*new_floor_profundity + 0.995*last_floor_profundity
+        floor_profundity = 0.01*_t0_floor_profundity + 0.78*_t1_floor_profundity + 0.21 *_t2_floor_profundity
     # otherwise, we keep using the same initial value
 
     ################################################
@@ -321,8 +324,11 @@ output_df = pd.DataFrame(
      'acceleration': acceleration_dive_history,
      'velocity': velocity_dive_history,
      'depth': depth_dive_history,
+     'seafloor': floor_profundity_history,
      'altitude': altitude_history,
-     'balls': balls_history
+     'balls': balls_history,
+     'x_position': horizontal_position_history,
+     'thruster': thruster_history
     })
 
 output_file = configuration['output']['file_path'] + configuration['output']['file_preffix'] + simulation_details + configuration['output']['file_extension']
