@@ -24,8 +24,8 @@ input:
   gravity: 9.81           # [m/s2]
   drag_coefficient: 1.2   # Geometry defined 
   radius: 0.2             # [m] transversal section
-  tau : 7                 # [m] system dynamic response constant
-  simulation_time: 30000   # [s] total simulation time
+  tau : 6                 # [m] system dynamic response constant
+  simulation_time: 50000   # [s] total simulation time
 
   # Using parameters from Al6061T housing
   main_mass: 27.40        # [kg] mass of the main body
@@ -40,14 +40,14 @@ input:
   flotation_density: 400.0 # [kg/m3]
 
 control:
-  mission_duration: 2000 # [s] time in control mode before triggering surfacing mode
+  mission_duration: 30000 # [s] time in control mode before triggering surfacing mode
   floor_profundity: 1000   # [m] fixed simulation profundity
   braking_altitude: 25    # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
   target_altitude: 2      # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
                           # it is equivalent to say when: altitude < target_altitude
-  kp_gain: 1.8
-  ki_gain: 0.05
-  kd_gain: 4.4
+  kp_gain: 2.1
+  ki_gain: 0.03
+  kd_gain: 3.8
 
 transect:
   transect_profile: "data/transects/HR1_desc_interpolated.csv"  # 10 cm decimated trasect with a seafloor model
