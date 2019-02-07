@@ -12,7 +12,7 @@ function transect_convert (filename, x_resolution)
 
 	% Then, we rearrange the data to a standard format:
 	% X[km] Depth[m] LAT[°] LON[°] 
-	x = tmp (:,1) * 112000;	% X position is given in 1:1000m
+	x = tmp (:,1) ;	% X position is given in 1:1000m
 	y = -tmp (:,2);   % Depth is given as negative value
 
 	plot (x,y)
@@ -22,7 +22,7 @@ function transect_convert (filename, x_resolution)
 	printf ("%d rows read from the input file\n", N)
 	xmax = max (x)
 	xf = [0:x_resolution:xmax]';
-	yf = interp1 (x, y, xf, "pchip");	% spline tend to overshoot 
+	yf = interp1 (x, y, xf, "spline");	% spline tend to overshoot 
 	% figure
 	plot (xf, yf, 'r')
 

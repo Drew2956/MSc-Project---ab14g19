@@ -50,7 +50,7 @@ control:
   kd_gain: 3.8
 
 transect:
-  transect_profile: "data/transects/HR1_desc_interpolated.csv"  # 10 cm decimated trasect with a seafloor model
+  transect_profile: "data/transects/HR1_desc_interpolated.new"  # 10 cm decimated trasect with a seafloor model
   transect_profundity_offset: 0      # [m] depth offset of the transect_profile 
   horizontal_speed: 0.05  # [m/s] horizontal speed: current drift
   horizontal_position_offset: 0  # [m] horizontal position offset
