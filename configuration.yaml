@@ -4,6 +4,7 @@
 # File containing density vs depth data, already interpolated at 1m interval.
 # This will be used as a lookup table for a faster simulation, instead of recurrent interpolation at simulation time
 density_profile: "data/ctd/interpolated/5K_ctd_average.csv"
+floor_model: "transect"  # options are: "fixed" | "transect" . Fixed mode uses floor_profundity defined in the control section, Transect mode use the floor profile from transect section
 
 input:
   start_depth: 5.0 # [m] initial depth 
@@ -24,7 +25,7 @@ input:
   drag_coefficient: 1.2   # Geometry defined 
   radius: 0.2             # [m] transversal section
   tau : 7                 # [m] system dynamic response constant
-  simulation_time: 10000   # [s] total simulation time
+  simulation_time: 30000   # [s] total simulation time
 
   # Using parameters from Al6061T housing
   main_mass: 27.40        # [kg] mass of the main body
@@ -44,6 +45,15 @@ control:
   braking_altitude: 25    # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
   target_altitude: 2      # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
                           # it is equivalent to say when: altitude < target_altitude
+  kp_gain: 1.8
+  ki_gain: 0.05
+  kd_gain: 4.4
+
+transect:
+  transect_profile: "data/transects/HR1_desc_interpolated.csv"  # 10 cm decimated trasect with a seafloor model
+  transect_profundity_offset: 0      # [m] depth offset of the transect_profile 
+  horizontal_speed: 0.05  # [m/s] horizontal speed: current drift
+  horizontal_position_offset: 0  # [m] horizontal position offset
 
 output:
   file_preffix: "sim"
