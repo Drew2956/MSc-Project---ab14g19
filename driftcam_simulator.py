@@ -182,9 +182,9 @@ while (t < simulation_time) and (keep_running == True):     # limit simulation t
         # that will trigger spikes in the controller
         _t2_floor_profundity = _t1_floor_profundity
         _t1_floor_profundity = floor_profundity
-        _t0_floor_profundity = profundity_table[1][math.floor(horizontal_position*10)] + configuration['transect']['transect_profundity_offset']
+        _t0_floor_profundity = profundity_table[1][math.floor(horizontal_position*100)] + configuration['transect']['transect_profundity_offset']
 
-        floor_profundity = 0.01*_t0_floor_profundity + 0.78*_t1_floor_profundity + 0.21 *_t2_floor_profundity
+        floor_profundity = 0.05*_t0_floor_profundity + 0.9*_t1_floor_profundity + 0.05 *_t2_floor_profundity
     # otherwise, we keep using the same initial value
 
     ################################################
@@ -335,7 +335,7 @@ output_file = configuration['output']['file_path'] + configuration['output']['fi
 output_file_html = configuration['output']['file_path'] + "plot" + simulation_details + ".html"
 
 # WARNING: removed to speed up simulation process
-#output_df.to_csv(output_file, encoding='utf-8', index=False)
+output_df.to_csv(output_file, encoding='utf-8', index=False)
 
 ####################################################################
 # Creates plots using Plotly
