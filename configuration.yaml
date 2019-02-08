@@ -40,17 +40,17 @@ input:
   flotation_density: 400.0 # [kg/m3]
 
 control:
-  mission_duration: 36000 # [s] time in control mode before triggering surfacing mode
-  floor_profundity: 1000   # [m] fixed simulation profundity
-  braking_altitude: 25    # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
-  target_altitude: 2      # [m] altitude threshold: depth control will be triggered when. depth > floor_profundity - target_altitude
+  mission_duration: 360 # [s] time in control mode before triggering surfacing mode
+  floor_profundity: 1000   # [m] fixed simulation profundity. Ignored when using a user defined seafloor profile
+  braking_altitude: 25    # [m] altitude threshold: BRAKING will be triggered when depth > floor_profundity - target_altitude
+  target_altitude: 2      # [m] altitude threshold: CONTROL will be triggered when depth > floor_profundity - target_altitude
                           # it is equivalent to say when: altitude < target_altitude
-  kp_gain: 2.1
-  ki_gain: 0.03
-  kd_gain: 3.8
+  kp_gain: 1.4
+  ki_gain: 0.02
+  kd_gain: 4.2
 
 transect:
-  transect_profile: "data/transects/HR1_desc_interpolated.new"  # 10 cm decimated trasect with a seafloor model
+  transect_profile: "data/transects/HR1_ASC_AB_10k_interpolated.csv"  # 10 cm decimated trasect with a seafloor model
   transect_profundity_offset: 0      # [m] depth offset of the transect_profile 
   horizontal_speed: 0.05  # [m/s] horizontal speed: current drift
   horizontal_position_offset: 0  # [m] horizontal position offset
