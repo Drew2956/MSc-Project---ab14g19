@@ -182,6 +182,7 @@ while (t < simulation_time) and (keep_running == True):     # limit simulation t
         # that will trigger spikes in the controller
         _t2_floor_profundity = _t1_floor_profundity
         _t1_floor_profundity = floor_profundity
+        # when indexing, horizontal_position is converted from input file resolution (cm) to its close integer index, for faster lookup
         _t0_floor_profundity = profundity_table[1][math.floor(horizontal_position*100)] + configuration['transect']['transect_profundity_offset']
 
         floor_profundity = 0.05*_t0_floor_profundity + 0.9*_t1_floor_profundity + 0.05 *_t2_floor_profundity
