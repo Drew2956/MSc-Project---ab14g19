@@ -1,0 +1,30 @@
+** Test 01:
+	ETA: 0.01 - 0.05, for 1km x 10 CTDs
+	Result: decide ETA_design: 0.03
+	Reason: for dive_time < 30 min, ETA > 0.02. Higher ETA better safety factor at surface. Lower ETA, less amount of ballast
+
+** Test 02:
+	For a defined ETA: 0.03
+	Test: different ballast unit sizes from 14 to 20 mm
+	      different profiles HR1, HR2, HR3
+	      CTD average (5K)
+	Results:
+	      Compare for each transect & ballast dimension:
+	      	- Controller error (altitude/depth)
+	      	- Energy consumption
+##############################
+Test e=0.03, s=36.000, t=HR1 , d=14
+Test e=0.03, s=36.000, t=HR1 , d=16
+Test e=0.03, s=36.000, t=HR1 , d=18
+Test e=0.03, s=36.000, t=HR1 , d=20
+
+Test e=0.03, s=36.000, t=HR2 , d=14
+Test e=0.03, s=36.000, t=HR2 , d=16
+Test e=0.03, s=36.000, t=HR2 , d=18
+Test e=0.03, s=36.000, t=HR2 , d=20
+
+Test e=0.03, s=36.000, t=HR3 , d=14
+Test e=0.03, s=36.000, t=HR3 , d=16
+Test e=0.03, s=36.000, t=HR3 , d=18
+Test e=0.03, s=36.000, t=HR3 , d=20
+
