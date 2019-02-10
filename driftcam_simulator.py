@@ -338,8 +338,12 @@ output_file_html = configuration['output']['file_path'] + "plot" + simulation_de
 # WARNING: removed to speed up simulation process
 output_df.to_csv(output_file, encoding='utf-8', index=False)
 
+# print ("Skipping HTML export...")
+# exit()
+
 ####################################################################
 # Creates plots using Plotly
+####################################################################
 print ("Creating plots ...")
 
 trace1 = go.Scatter(y=depth_dive_history, x=time_dive_history, name='Depth')
