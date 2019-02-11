@@ -9,9 +9,7 @@ floor_model: "transect"  # options are: "fixed" | "transect" . Fixed mode uses f
 input:
   start_depth: 5.0 # [m] initial depth 
   start_velocity: 0.0 # [m/s] initial vertical velocity
-  eta:  0.02       # Value from D1-1 base design
-
-  horizontal_speed: 2.5 # [cm/s] horizontal speed, for profile simulation
+  eta:  0.03       # Value from D1-1 base design
 
   seawater_density: 1024.0  # for those fixed density simulation cases [kg/m3]
 
@@ -24,23 +22,23 @@ input:
   gravity: 9.81           # [m/s2]
   drag_coefficient: 1.2   # Geometry defined 
   radius: 0.2             # [m] transversal section
-  tau : 5                 # [m] system dynamic response constant
-  simulation_time: 50000   # [s] total simulation time
+  tau : 4                 # [m] system dynamic response constant
+  simulation_time: 100000   # [s] total simulation time
 
   # Using parameters from Al6061T housing
   main_mass: 27.40        # [kg] mass of the main body
-  main_volume: 0.0196      # [m3] volume of the main body
+  main_volume: 0.0196     # [m3] volume of the main body
 
-  ball_diameter: 0.014    # [m] ballast unit diameter
+  ball_diameter: 0.020    # [m] ballast unit diameter
   ball_density: 7800      # [kg/m3] 
 
-  ballast_mass: 1.624   # [kg] total ballast mass: ws + wd
+  ballast_mass: 2.293   # [kg] total ballast mass: ws + wd
 
-  flotation_mass: 5.115    # [kg]
+  flotation_mass: 5.328    # [kg]
   flotation_density: 400.0 # [kg/m3]
 
 control:
-  mission_duration: 360 # [s] time in control mode before triggering surfacing mode
+  mission_duration: 72000 # [s] time in control mode before triggering surfacing mode
   floor_profundity: 1000   # [m] fixed simulation profundity. Ignored when using a user defined seafloor profile
   braking_altitude: 25    # [m] altitude threshold: BRAKING will be triggered when depth > floor_profundity - target_altitude
   target_altitude: 2      # [m] altitude threshold: CONTROL will be triggered when depth > floor_profundity - target_altitude
@@ -50,12 +48,13 @@ control:
   kd_gain: 4.2
 
 transect:
-  transect_profile: "data/transects/HR1_ASC_AB_10k_interpolated.csv"  # 10 cm decimated trasect with a seafloor model
+  transect_profile: "data/transects/HR3_DES_CD_10k_interpolated.csv"  # 10 cm decimated transect with a seafloor model
   transect_profundity_offset: 0      # [m] depth offset of the transect_profile 
   horizontal_speed: 0.05  # [m/s] horizontal speed: current drift
   horizontal_position_offset: 0  # [m] horizontal position offset
 
 output:
+  export_html: True
   file_preffix: "sim"
   file_extension: ".csv"
-  file_path: "data/simulations/"
+  file_path: "data/simulations/transect_diameter_test/"

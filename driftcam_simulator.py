@@ -344,45 +344,46 @@ stop_time = time.time()
 elapsed_time = stop_time - start_time
 time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
 
-print ("Skipping HTML export...")
-exit()
-
 ####################################################################
 # Creates plots using Plotly
 ####################################################################
 print ("Creating plots ...")
 
-trace1 = go.Scatter(y=depth_dive_history, x=time_dive_history, name='Depth')
-trace2 = go.Scatter(y=velocity_dive_history, x=time_dive_history, name='Velocity')
-trace3 = go.Scatter(y=thruster_history, x=time_dive_history, name='Thruster')
-trace4 = go.Scatter(y=balls_history, x=time_dive_history, name='Balls')
-trace5 = go.Scatter(y=floor_profundity_history, x=time_dive_history, name='Profundity')
-trace6 = go.Scatter(y=error_history, x=time_dive_history, name='Altitude error')
+if configuration['output']['export_html'] == True:
+    trace1 = go.Scatter(y=depth_dive_history, x=time_dive_history, name='Depth')
+    trace2 = go.Scatter(y=velocity_dive_history, x=time_dive_history, name='Velocity')
+    trace3 = go.Scatter(y=thruster_history, x=time_dive_history, name='Thruster')
+    trace4 = go.Scatter(y=balls_history, x=time_dive_history, name='Balls')
+    trace5 = go.Scatter(y=floor_profundity_history, x=time_dive_history, name='Profundity')
+    trace6 = go.Scatter(y=error_history, x=time_dive_history, name='Altitude error')
 
-fig = tools.make_subplots(rows=2, cols=2, subplot_titles=('Depth', 'Velocity',
-                                                          'Thruster', 'Balls'))
-fig.append_trace(trace1, 1, 1)
-fig.append_trace(trace5, 1, 1)
+    fig = tools.make_subplots(rows=2, cols=2, subplot_titles=('Depth', 'Velocity',
+                                                              'Thruster', 'Balls'))
+    fig.append_trace(trace1, 1, 1)
+    fig.append_trace(trace5, 1, 1)
 
-fig.append_trace(trace2, 1, 2)
+    fig.append_trace(trace2, 1, 2)
 
-fig.append_trace(trace3, 2, 1)
-fig.append_trace(trace6, 2, 1)
+    fig.append_trace(trace3, 2, 1)
+    fig.append_trace(trace6, 2, 1)
 
-fig.append_trace(trace4, 2, 2)
+    fig.append_trace(trace4, 2, 2)
 
-fig['layout']['xaxis1'].update(title='Time (s)')
-fig['layout']['xaxis2'].update(title='Time (s)')
-fig['layout']['xaxis3'].update(title='Time (s)')
-fig['layout']['xaxis4'].update(title='Time (s)')
+    fig['layout']['xaxis1'].update(title='Time (s)')
+    fig['layout']['xaxis2'].update(title='Time (s)')
+    fig['layout']['xaxis3'].update(title='Time (s)')
+    fig['layout']['xaxis4'].update(title='Time (s)')
 
-fig['layout']['yaxis1'].update(title='Depth (m) & Profundity (m)', autorange='reversed')
-fig['layout']['yaxis2'].update(title='Velocity (m/s)')
-fig['layout']['yaxis3'].update(title='Thruster (N) & Altitude error (m)')
-fig['layout']['yaxis4'].update(title='Number of balls (#)')
+    fig['layout']['yaxis1'].update(title='Depth (m) & Profundity (m)', autorange='reversed')
+    fig['layout']['yaxis2'].update(title='Velocity (m/s)')
+    fig['layout']['yaxis3'].update(title='Thruster (N) & Altitude error (m)')
+    fig['layout']['yaxis4'].update(title='Number of balls (#)')
 
-fig['layout'].update(title='Customizing Subplot Axes')
+    fig['layout'].update(title='Customizing Subplot Axes')
 
-print ("Done, now storing plots in ", output_file_html)
-print ("This may take a while ...")
-py.plot(fig, filename = output_file_html)
+    print ("Done, now storing plots in ", output_file_html)
+    print ("This may take a while ...")
+    py.plot(fig, filename = output_file_html)
+else:
+    print ("Configuration set export_html = False")
+    exit()
