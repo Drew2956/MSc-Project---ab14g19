@@ -15,6 +15,8 @@ print ("Driftcam diving simulator")
 print ("Loading configuration.yaml...")
 config_file = "configuration.yaml"
 
+start_time = time.time()
+
 #######################################
 # Read configuration parameters from configuration.yaml
 with open(config_file,'r') as stream:
@@ -338,8 +340,12 @@ output_file_html = configuration['output']['file_path'] + "plot" + simulation_de
 # WARNING: removed to speed up simulation process
 output_df.to_csv(output_file, encoding='utf-8', index=False)
 
-# print ("Skipping HTML export...")
-# exit()
+stop_time = time.time()
+elapsed_time = stop_time - start_time
+time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+
+print ("Skipping HTML export...")
+exit()
 
 ####################################################################
 # Creates plots using Plotly
