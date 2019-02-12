@@ -23,7 +23,7 @@ input:
   drag_coefficient: 1.2   # Geometry defined 
   radius: 0.2             # [m] transversal section
   tau : 4                 # [m] system dynamic response constant
-  simulation_time: 100000   # [s] total simulation time
+  simulation_time: 60000   # [s] total simulation time
 
   # Using parameters from Al6061T housing
   main_mass: 27.40        # [kg] mass of the main body
@@ -38,7 +38,7 @@ input:
   flotation_density: 400.0 # [kg/m3]
 
 control:
-  mission_duration: 72000 # [s] time in control mode before triggering surfacing mode
+  mission_duration: 36000 # [s] time in control mode before triggering surfacing mode
   floor_profundity: 1000   # [m] fixed simulation profundity. Ignored when using a user defined seafloor profile
   braking_altitude: 25    # [m] altitude threshold: BRAKING will be triggered when depth > floor_profundity - target_altitude
   target_altitude: 2      # [m] altitude threshold: CONTROL will be triggered when depth > floor_profundity - target_altitude
@@ -54,7 +54,7 @@ transect:
   horizontal_position_offset: 0  # [m] horizontal position offset
 
 output:
-  export_html: True
-  file_preffix: "sim"
+  export_html: False
+  file_preffix: "batch"
   file_extension: ".csv"
   file_path: "data/simulations/batch/"
