@@ -57,4 +57,4 @@ output:
   export_html: True
   file_preffix: "sim"
   file_extension: ".csv"
-  file_path: "data/simulations/transect_diameter_test/"
+  file_path: "data/simulations/batch/"

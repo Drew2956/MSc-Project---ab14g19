@@ -6,27 +6,60 @@ import time
 import math
 import pandas as pd
 import yaml
+import argparse
 import plotly.offline as py
 from plotly import tools
 import plotly.graph_objs as go
 from SimplePID import SimplePID
 
+verbose_flag = False
+
+#TODO: improve output message and usage example
+parser = argparse.ArgumentParser(
+    description='Driftcam diving simulator. Uses CTD profiles, terrain model, ballast size and thruster model to recreate a diving/braking/mapping/surfaceing sequence',
+    usage='''driftcam_simulator.py <command> [<args>]''',
+    formatter_class=argparse.RawDescriptionHelpFormatter)
+
+#    parser.add_argument('parse', help="Parse RAW data and convert it to an intermediate dataformat")
+parser.add_argument("--ballast", help="Specify desired ballast diameter [mm]. This value overrides any configuration.yaml value")
+parser.add_argument("--ctd", help="Provide CTD profile")
+parser.add_argument("--transect", help="Path to seafloor depth profile")
+parser.add_argument("--config", help="Specify YAML configuration file to be used")
+parser.add_argument("--verbose", help="Ask for verbose output", action="store_true")
+ 
+# Parsing command line arguments
+args = parser.parse_args()
+
+# Check if verbose flag was activated
+if args.verbose:
+    verbose_flag = True
+    print ("Verbose mode ON")
+
+#########################################
+
 print ("Driftcam diving simulator")
 print ("Loading configuration.yaml...")
-config_file = "configuration.yaml"
+config_file = "config/configuration.yaml"
 
 start_time = time.time()
 
-#######################################
+########################################
 # Read configuration parameters from configuration.yaml
 with open(config_file,'r') as stream:
     configuration = yaml.load(stream)   
 
-print ("Loading density profile from: ", configuration['density_profile'])
-# read input data (density profile)
-density_table = pd.read_csv(configuration['density_profile'], sep='\t', header=None)
-#print (density_table)
-#time.sleep(5)
+########################################
+# CTD PROFILE
+########################################
+if args.ctd:
+    print ("Loading CTD profile specified at runtime: ", args.ctd)
+    # read input data (density profile)
+    density_table = pd.read_csv(args.ctd, sep='\t', header=None)
+else:
+    print ("Loading CTD profile from: ", configuration['density_profile'])
+    # read input data (density profile)
+    density_table = pd.read_csv(configuration['density_profile'], sep='\t', header=None)
+
 # This file must an already interpolated dataset, at 1.0 m depth resolution for faster calculations
 # By doing this, the interpolation is done via lookup table, starting from 0 meter index
 
@@ -56,7 +89,12 @@ tau = configuration['input']['tau'] # system dynamic response constant
 main_mass = configuration['input']['main_mass'] # kg
 main_volume = configuration['input']['main_volume'] # m3
 
-ball_diameter = configuration['input']['ball_diameter'] # ballast unit diameter
+if args.ballast:
+    ball_diameter = float(args.ballast)
+    print ("Using ball_diameter defined at runtime: ", ball_diameter)
+else:
+    ball_diameter = configuration['input']['ball_diameter'] # ballast unit diameter
+
 ball_volume = 4/3*math.pi*math.pow(ball_diameter/2,3)   # ballast unit volume
 ball_density = configuration['input']['ball_density'] # kg / m3 # ball_mass = 0.016728 # kg 
 ball_mass = ball_volume * ball_density  # ballast unit mass
@@ -72,24 +110,35 @@ number_of_balls = math.ceil(ballast_mass / ball_mass)   # rounded-up number of b
 braking_altitude = configuration['control']['braking_altitude']
 mission_duration = configuration['control']['mission_duration']
 
-floor_model = configuration['floor_model']  # retrieve floor model: fixed or transect
-if floor_model == 'fixed':
-    print ("Using 'floor_model': ", floor_model)
-    floor_profundity = configuration['control']['floor_profundity']
-elif floor_model == 'transect':
-    print ("Importing transect profile from: ", configuration['transect']['transect_profile'])
+########################################
+# TRANSECT DEFINITION
+########################################
+if args.transect:
+    print ("Seafloor model specified at runtime: ", args.transect)
+    floor_model = 'transect'
     profundity_table = pd.read_csv(configuration['transect']['transect_profile'], sep='\t', header=None)
-    floor_profundity = profundity_table[1][0] + configuration['transect']['transect_profundity_offset']
+    floor_profundity = profundity_table[1][0]
 else:
-    print ("Unknown 'floor_model' ", floor_model, " defined in 'configuration.yaml'")
-    print ("Using default 'fixed' depth model with depth = 100m")
-    floor_model = 'fixed'
-    floor_profundity = 100
+    floor_model = configuration['floor_model']  # retrieve floor model: fixed or transect
+    if floor_model == 'fixed':
+        print ("Using 'floor_model': ", floor_model)
+        floor_profundity = configuration['control']['floor_profundity']
+    elif floor_model == 'transect':
+        print ("Importing transect profile from: ", configuration['transect']['transect_profile'])
+        profundity_table = pd.read_csv(configuration['transect']['transect_profile'], sep='\t', header=None)
+        floor_profundity = profundity_table[1][0] + configuration['transect']['transect_profundity_offset']
+    else:
+        print ("Unknown 'floor_model' ", floor_model, " defined in 'configuration.yaml'")
+        print ("Using default 'fixed' depth model with depth = 100m")
+        floor_model = 'fixed'
+        floor_profundity = 100
 
 _t1_floor_profundity = floor_profundity
 _t0_floor_profundity = floor_profundity
-#######################################
+
+########################################
 # Print summary of simulation parameters
+########################################
 print ("----------------------------------")
 print ("Platform parameters:")
 print (" * Plaform:")

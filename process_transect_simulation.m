@@ -1,11 +1,12 @@
 % Import data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [pm ps em es emx] = process_transect_simulation (filename, row_skip = 0)
+function [pm ps em es emx] = process_transect_simulation (filename, row_skip = 0, flag_plot = 1)
     DIVE = 0;
     BRAKE = 1;
     CONTROL = 2;
     SURFACE = 3;
 
+    filename = strtrim(filename);   % remove any trailing space    
 	printf ("Loading %s ...\n", filename)
 	% Read data from filename, whose columns are separated by COMMA, and skip the first ROW (header)
 	data = dlmread (filename, ',', 1 + row_skip, 0);
@@ -92,79 +93,82 @@ function [pm ps em es emx] = process_transect_simulation (filename, row_skip = 0
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    close all
 
-    figure
-    title (filename)
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Visualization
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    subplot (3,1,1)
-        hold on
+    if (flag_plot == 1)
 
-        plot (x, prof, 'k--')
-        plot (x, depth, 'b', 'linewidth', 2)
-        legend ("Seafloor[m]", "Depth[m]")
+        figure
+        title (filename)
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Visualization
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        subplot (3,1,1)
+            hold on
 
-        % Improve data visualization by adding labels, and zoom box
-        % Retrieve min/max values for the phases, adding some extra space at both sides
-        _min = min (prof(start_brake:start_surface));
-        _max = max (depth(start_brake:start_surface));
-        _min = _min - abs(_min/200)
-        _max = _max + abs(_max/200)
+            plot (x, prof, 'k--')
+            plot (x, depth, 'b', 'linewidth', 2)
+            legend ("Seafloor[m]", "Depth[m]")
 
-        % Improve data visualization by vertical dash lines indicating mode transition
-        line ([x(start_brake) x(start_brake)], [_min _max], 'linestyle', '--', 'color', 'k')
-        line ([x(start_control) x(start_control)], [_min _max], 'linestyle', '--', 'color', 'k')
-        line ([x(start_surface) x(start_surface)], [_min _max], 'linestyle', '--', 'color', 'k')
+            % Improve data visualization by adding labels, and zoom box
+            % Retrieve min/max values for the phases, adding some extra space at both sides
+            _min = min (prof(start_brake:start_surface));
+            _max = max (depth(start_brake:start_surface));
+            _min = _min - abs(_min/200);
+            _max = _max + abs(_max/200);
 
-        ylim ([_min _max])
-        xlabel ("Distance [m]")
+            % Improve data visualization by vertical dash lines indicating mode transition
+            line ([x(start_brake) x(start_brake)], [_min _max], 'linestyle', '--', 'color', 'k')
+            line ([x(start_control) x(start_control)], [_min _max], 'linestyle', '--', 'color', 'k')
+            line ([x(start_surface) x(start_surface)], [_min _max], 'linestyle', '--', 'color', 'k')
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Visualization
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    subplot (3,1,2)
-        hold on
+            ylim ([_min _max])
+            xlabel ("Distance [m]")
 
-        plot (x, altitude_error, 'r', 'linewidth', 2)
-        plot (x, velocity, 'g', 'linewidth', 2)
-        legend ("Altitude error[m]", "Velocity[m/s]")
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Visualization
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        subplot (3,1,2)
+            hold on
 
-        % Retrieve min/max values for the phases, adding some extra space at both sides
-        _min = min (altitude_error(start_control:start_surface));
-        _max = max (altitude_error(start_control:start_surface));
-        _min = _min - abs(_min/10);
-        _max = _max + abs(_max/10);
+            plot (x, altitude_error, 'r', 'linewidth', 2)
+            plot (x, velocity, 'g', 'linewidth', 2)
+            legend ("Altitude error[m]", "Velocity[m/s]")
 
-        % Improve data visualization by vertical dash lines indicating mode transition
-        line ([x(start_brake) x(start_brake)], [_min _max], 'linestyle', '--', 'color', 'k')
-        line ([x(start_control) x(start_control)], [_min _max], 'linestyle', '--', 'color', 'k')
-        line ([x(start_surface) x(start_surface)], [_min _max], 'linestyle', '--', 'color', 'k')
+            % Retrieve min/max values for the phases, adding some extra space at both sides
+            _min = min (altitude_error(start_control:start_surface));
+            _max = max (altitude_error(start_control:start_surface));
+            _min = _min - abs(_min/10);
+            _max = _max + abs(_max/10);
 
-        ylim ([_min _max])
-        xlabel ("Distance [m]")
+            % Improve data visualization by vertical dash lines indicating mode transition
+            line ([x(start_brake) x(start_brake)], [_min _max], 'linestyle', '--', 'color', 'k')
+            line ([x(start_control) x(start_control)], [_min _max], 'linestyle', '--', 'color', 'k')
+            line ([x(start_surface) x(start_surface)], [_min _max], 'linestyle', '--', 'color', 'k')
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Visualization
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    subplot (3,1,3)
-        hold on
+            ylim ([_min _max])
+            xlabel ("Distance [m]")
 
-        plot (x, power_required, 'b', 'linewidth', 2)
-        legend ("Power[W]")
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Visualization
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        subplot (3,1,3)
+            hold on
 
-        % Retrieve min/max values for the phases, adding some extra space at both sides
-        _min = min (power_required(start_control:start_surface));
-        _max = max (power_required(start_control:start_surface));
-        _min = _min - abs(_min/10);
-        _max = _max + abs(_max/10);
+            plot (x, power_required, 'b', 'linewidth', 2)
+            legend ("Power[W]")
 
-        % Improve data visualization by vertical dash lines indicating mode transition
-        line ([x(start_brake) x(start_brake)], [_min _max], 'linestyle', '--', 'color', 'k')
-        line ([x(start_control) x(start_control)], [_min _max], 'linestyle', '--', 'color', 'k')
-        line ([x(start_surface) x(start_surface)], [_min _max], 'linestyle', '--', 'color', 'k')
+            % Retrieve min/max values for the phases, adding some extra space at both sides
+            _min = min (power_required(start_control:start_surface));
+            _max = max (power_required(start_control:start_surface));
+            _min = _min - abs(_min/10);
+            _max = _max + abs(_max/10);
 
-        ylim ([_min _max])
-        xlabel ("Distance [m]")
+            % Improve data visualization by vertical dash lines indicating mode transition
+            line ([x(start_brake) x(start_brake)], [_min _max], 'linestyle', '--', 'color', 'k')
+            line ([x(start_control) x(start_control)], [_min _max], 'linestyle', '--', 'color', 'k')
+            line ([x(start_surface) x(start_surface)], [_min _max], 'linestyle', '--', 'color', 'k')
+
+            ylim ([_min _max])
+            xlabel ("Distance [m]")
+        endif
 
     % WARNING: if we reverse signs for depth, we must do the same for the velocity.
     % WARNING: some resulting energy values are negative, meaning some of it could be recovered but our system is full dissipative
@@ -189,7 +193,7 @@ function [pm ps em es emx] = process_transect_simulation (filename, row_skip = 0
 
     em = altitude_error_mean;
     es = altitude_error_stdev;
-    emx = max (altitude_error(start_control:start_surface));
+    emx = max (abs(altitude_error(start_control:start_surface)));
     return
  
 
