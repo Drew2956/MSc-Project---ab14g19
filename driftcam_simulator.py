@@ -5,6 +5,7 @@
 import time
 import math
 import pandas as pd
+import sys
 import yaml
 import argparse
 import plotly.offline as py
@@ -25,6 +26,7 @@ parser.add_argument("--ballast", help="Specify desired ballast diameter [mm]. Th
 parser.add_argument("--ctd", help="Provide CTD profile")
 parser.add_argument("--transect", help="Path to seafloor depth profile")
 parser.add_argument("--config", help="Specify YAML configuration file to be used")
+parser.add_argument("--output", help="Define file output name")
 parser.add_argument("--verbose", help="Ask for verbose output", action="store_true")
  
 # Parsing command line arguments
@@ -52,13 +54,14 @@ with open(config_file,'r') as stream:
 # CTD PROFILE
 ########################################
 if args.ctd:
-    print ("Loading CTD profile specified at runtime: ", args.ctd)
+    print ("CTD specified at runtime")
     # read input data (density profile)
-    density_table = pd.read_csv(args.ctd, sep='\t', header=None)
-else:
-    print ("Loading CTD profile from: ", configuration['density_profile'])
-    # read input data (density profile)
-    density_table = pd.read_csv(configuration['density_profile'], sep='\t', header=None)
+    configuration['density_profile'] = args.ctd
+#    density_table = pd.read_csv(args.ctd, sep='\t', header=None)
+
+print ("Loading CTD profile from: ", configuration['density_profile'])
+# read input data (density profile)
+density_table = pd.read_csv(configuration['density_profile'], sep='\t', header=None)
 
 # This file must an already interpolated dataset, at 1.0 m depth resolution for faster calculations
 # By doing this, the interpolation is done via lookup table, starting from 0 meter index
@@ -90,11 +93,10 @@ main_mass = configuration['input']['main_mass'] # kg
 main_volume = configuration['input']['main_volume'] # m3
 
 if args.ballast:
-    ball_diameter = float(args.ballast)
-    print ("Using ball_diameter defined at runtime: ", ball_diameter)
-else:
-    ball_diameter = configuration['input']['ball_diameter'] # ballast unit diameter
+    configuration['input']['ball_diameter'] = float(args.ballast)
+    print ("Using ball_diameter defined at runtime: ", configuration['input']['ball_diameter'])
 
+ball_diameter = configuration['input']['ball_diameter'] # ballast unit diameter
 ball_volume = 4/3*math.pi*math.pow(ball_diameter/2,3)   # ballast unit volume
 ball_density = configuration['input']['ball_density'] # kg / m3 # ball_mass = 0.016728 # kg 
 ball_mass = ball_volume * ball_density  # ballast unit mass
@@ -113,20 +115,27 @@ mission_duration = configuration['control']['mission_duration']
 ########################################
 # TRANSECT DEFINITION
 ########################################
+
 if args.transect:
     print ("Seafloor model specified at runtime: ", args.transect)
     floor_model = 'transect'
+    configuration['transect']['transect_profile'] = args.transect
     profundity_table = pd.read_csv(configuration['transect']['transect_profile'], sep='\t', header=None)
+    floor_model = 'transect'
     floor_profundity = profundity_table[1][0]
+    floor_id = configuration['transect']['transect_profile'].split(".")[0]
 else:
     floor_model = configuration['floor_model']  # retrieve floor model: fixed or transect
     if floor_model == 'fixed':
         print ("Using 'floor_model': ", floor_model)
         floor_profundity = configuration['control']['floor_profundity']
+        floor_id = str(floor_profundity)
     elif floor_model == 'transect':
         print ("Importing transect profile from: ", configuration['transect']['transect_profile'])
         profundity_table = pd.read_csv(configuration['transect']['transect_profile'], sep='\t', header=None)
         floor_profundity = profundity_table[1][0] + configuration['transect']['transect_profundity_offset']
+        floor_id = configuration['transect']['transect_profile'].split("_")[0]
+        floor_id = floor_id.split("/")[-1]
     else:
         print ("Unknown 'floor_model' ", floor_model, " defined in 'configuration.yaml'")
         print ("Using default 'fixed' depth model with depth = 100m")
@@ -157,17 +166,14 @@ print ("\tAltitude[m]: ", str(braking_altitude), "\tProfundity[m]: ", floor_prof
 print (" * Solver:")
 print ("\tTime step[s]: ", time_step, "\tGravity[m/s2]: ", gravity, "\tDrag coeff: ", drag_coefficient)
 
-# string used for the output file name (both CSV and HTML outputs)
-density_id = configuration['density_profile'].split("_")[0]
-density_id = density_id.split("/")[-1]
-
-if floor_model == 'fixed':
-    floor_id = str(floor_profundity)
-elif floor_model == 'transect':
-    floor_id = configuration['transect']['transect_profile'].split("_")[0]
-    floor_id = floor_id.split("/")[-1]
-
-simulation_details = "_e" + str(eta) + "_d" + str(ball_diameter) + "_c" + str(density_id) + "_t" + floor_id
+if args.output:
+    print ("Runtime defined output filename: ", args.output)
+    simulation_details = args.output
+else:
+    # string used for the output file name (both CSV and HTML outputs)
+    density_id = configuration['density_profile'].split("_")[1]
+    density_id = density_id.split("/")[-1]
+    simulation_details = "_e" + str(eta) + "_d" + str(ball_diameter) + "_c" + str(density_id) + "_t" + floor_id
 
 #  Empty placeholders for incoming simulation data
 time_dive_history = []
@@ -396,9 +402,9 @@ time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
 ####################################################################
 # Creates plots using Plotly
 ####################################################################
-print ("Creating plots ...")
 
 if configuration['output']['export_html'] == True:
+    print ("Creating plots ...")
     trace1 = go.Scatter(y=depth_dive_history, x=time_dive_history, name='Depth')
     trace2 = go.Scatter(y=velocity_dive_history, x=time_dive_history, name='Velocity')
     trace3 = go.Scatter(y=thruster_history, x=time_dive_history, name='Thruster')
