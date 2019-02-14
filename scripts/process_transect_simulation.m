@@ -1,6 +1,6 @@
 % Import data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [pm ps em es emx] = process_transect_simulation (filename, row_skip = 0, flag_plot = 1)
+function [pm ps em es emx ctd_id ball_id trans_id] = process_transect_simulation (filename, row_skip = 0, flag_plot = 0)
     DIVE = 0;
     BRAKE = 1;
     CONTROL = 2;
@@ -84,7 +84,6 @@ function [pm ps em es emx] = process_transect_simulation (filename, row_skip = 0
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     power_mean = mean(abs(power_required(start_control:start_surface)))
     power_stdev = std (abs(power_required(start_control:start_surface)))
-
     altitude_error_mean = mean(abs(altitude_error(start_control:start_surface)))
     altitude_error_stdev = std(abs(altitude_error(start_control:start_surface)))
 
@@ -175,18 +174,9 @@ function [pm ps em es emx] = process_transect_simulation (filename, row_skip = 0
     % Check physical validation for our modeled system (E>0)
     % Review approx of integral to sum description of the equation
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % TODO: estimate Energy consumption
-    % E = P.t
-    % P = F.v
-    % E = F.v.t = F.d
-    % We have both the actual depth, and the instant velocity for each (t)
-    % We should be able to estimate the distance traveled (dZ) for each interval (dT)
-    % The time step is constant: 0.1 s for the existing dataset
-    % WARNING: this calculations won't hold true as the hypothesis required is to be a conservative system
-    % which is not our case, as there are dissipative forces (drag, i.e.)
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- 
+    % Export new processed data
+    out = [time x power_required system_mode' altitude_error];
+
     % return values
     pm = power_mean;
     ps = power_stdev;
@@ -194,18 +184,19 @@ function [pm ps em es emx] = process_transect_simulation (filename, row_skip = 0
     em = altitude_error_mean;
     es = altitude_error_stdev;
     emx = max (abs(altitude_error(start_control:start_surface)));
-    return
- 
-
-    % TODO: determine the system mode: DIVING, BRAKING, CONTROL, SURFACING
-
-    % In order to detect the PHASE, we can use as input mission_time: 36.000 for CONTROL phase,
-    % the start of ballast dispensing fror init BRAKING phase, and target_altitude for BRAKING->CONTROL
-    % Also, the second ballast init, flags the SURFACING phase
 
 	% Finally, we export the new data
-	[fPath fName fExtension] = fileparts (filename)
-	new_filename = strcat(fPath,"/",fName,"_interpolated.csv")
+	[fPath fName fExtension] = fileparts (filename);
+    % Extract information of the simulation from the filename
+    i = strfind (filename, "CTD");
+    ctd_id = str2num(filename (i+3:i+4));
 
-	dlmwrite(new_filename, out, 'delimiter', '\t');
+    i = strfind (filename, "_d");
+    ball_id = str2double(filename (i+2:i+6));
+
+    i = strfind (filename, "_tT");
+    trans_id = str2double(filename (i+3:i+3));
+
+	new_filename = strcat(fPath,"/flag/",fName,"_power_mode.csv");
+	dlmwrite(new_filename, [pm ps em es emx], 'delimiter', '\t');
 
