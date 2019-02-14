@@ -1,4 +1,4 @@
-% Import data
+s% Import data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [pm ps em es emx ctd_id ball_id trans_id] = process_transect_simulation (filename, row_skip = 0, flag_plot = 0)
     DIVE = 0;
