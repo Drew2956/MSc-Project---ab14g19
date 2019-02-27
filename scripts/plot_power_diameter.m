@@ -1,7 +1,7 @@
 % Receive path to CSV files containing the simuation output with the template:
 % batch_e0.03_d0.014_cCTD01_tT1_power_mode.csv
 
-% Current implementation includes downsamplin capabiities, using an integer factor K
+% Current implementation includes downsampling capabiities, using an integer factor K
 % It also includes a 'transect' flag for subgroup processing
 function [power_history error_history] = plot_power_diameter(file_path, transect = 1)
 
@@ -11,7 +11,7 @@ function [power_history error_history] = plot_power_diameter(file_path, transect
 
 	close all
 	% Look for all CSV files in the provided folder root (recursively)
-	K = 10;
+	K = 1;
 
 	power_history = zeros(36001,4,10)
 	error_history = zeros(36001,4,10)
