@@ -2,6 +2,7 @@
 # Created by: M. Massot
 # Edited by: M. Massot, J. Cappelletto
 
+# TODO: check which libraries are not being used 
 import time
 import math
 import pandas as pd
@@ -17,17 +18,17 @@ verbose_flag = False
 
 #TODO: improve output message and usage example
 parser = argparse.ArgumentParser(
-    description='Driftcam diving simulator. Uses CTD profiles, terrain model, ballast size and thruster model to recreate a diving/braking/mapping/surfaceing sequence',
+    description='Driftcam diving simulator. Uses CTD profiles, terrain model, ballast size and thruster model to recreate a diving/braking/mapping/surfacing sequence',
     usage='''driftcam_simulator.py <command> [<args>]''',
     formatter_class=argparse.RawDescriptionHelpFormatter)
 
-#    parser.add_argument('parse', help="Parse RAW data and convert it to an intermediate dataformat")
+# parser.add_argument('parse', help="Parse RAW data and convert it to an intermediate dataformat")
 parser.add_argument("--ballast", help="Specify desired ballast diameter [mm]. This value overrides any configuration.yaml value")
-parser.add_argument("--ctd", help="Provide CTD profile")
+parser.add_argument("--ctd", help="Specify the path to the CTD profile to be used for the simulation")
 parser.add_argument("--transect", help="Path to seafloor depth profile")
 parser.add_argument("--config", help="Specify YAML configuration file to be used")
-parser.add_argument("--output", help="Define file output name")
-parser.add_argument("--verbose", help="Ask for verbose output", action="store_true")
+parser.add_argument("--output", help="Define output file name")
+parser.add_argument("--verbose", help="Ask for a more verbose output", action="store_true")
  
 # Parsing command line arguments
 args = parser.parse_args()
@@ -39,7 +40,7 @@ if args.verbose:
 
 #########################################
 
-print ("Driftcam diving simulator")
+print ("//Driftcam diving simulator//")
 print ("Loading configuration.yaml...")
 config_file = "config/configuration.yaml"
 
@@ -54,10 +55,9 @@ with open(config_file,'r') as stream:
 # CTD PROFILE
 ########################################
 if args.ctd:
-    print ("CTD specified at runtime")
+    print ("CTD profile specified at runtime")
     # read input data (density profile)
     configuration['density_profile'] = args.ctd
-#    density_table = pd.read_csv(args.ctd, sep='\t', header=None)
 
 print ("Loading CTD profile from: ", configuration['density_profile'])
 # read input data (density profile)
@@ -73,8 +73,9 @@ horizontal_position = configuration['transect']['horizontal_position_offset']   
 t = 0.0
 dropped_ball_time = 0   # timestamp of last dropped ball event
 
-# Use first value from the lookup table. In fixed seawater simulations, this will be the constant value to be used
+# Use the first value of the lookup table. In fixed seawater simulations, this will be the constant value to be used during all the simulation
 seawater_density = density_table[1][int (math.floor(depth))]
+# safecty factor (eta) value 
 eta = configuration['input']['eta']
 
 # Solver parameters
@@ -92,6 +93,7 @@ tau = configuration['input']['tau'] # system dynamic response constant
 main_mass = configuration['input']['main_mass'] # kg
 main_volume = configuration['input']['main_volume'] # m3
 
+# if ballast diameter is specified at launch time. It superseeds the value imported from configuration.yaml
 if args.ballast:
     configuration['input']['ball_diameter'] = float(args.ballast)
     print ("Using ball_diameter defined at runtime: ", configuration['input']['ball_diameter'])
@@ -108,14 +110,13 @@ flotation_volume = flotation_mass / flotation_density   # total volume of the fl
 ballast_mass = configuration['input']['ballast_mass']   # design defined initial ballast_mass
 number_of_balls = math.ceil(ballast_mass / ball_mass)   # rounded-up number of ballast units based on the desired ballast_mass and the ballas unit mass
 
-# TODO: floor can be a fixed value or a transect profile (See #4)
-braking_altitude = configuration['control']['braking_altitude']
-mission_duration = configuration['control']['mission_duration']
+braking_altitude = configuration['control']['braking_altitude']	# altitude threshold that will trigger change of platform behaviour from DIVING to BRAKING
+mission_duration = configuration['control']['mission_duration'] # time duration of mission phase (active ALTITUDE CONTROL mode)
 
 ########################################
 # TRANSECT DEFINITION
 ########################################
-
+# if 'transect' is specified at launch moment, the load it
 if args.transect:
     print ("Seafloor model specified at runtime: ", args.transect)
     floor_model = 'transect'
@@ -124,6 +125,7 @@ if args.transect:
     floor_model = 'transect'
     floor_profundity = profundity_table[1][0]
     floor_id = configuration['transect']['transect_profile'].split(".")[0]
+# else, check the floor_model defined in the configuration.yaml
 else:
     floor_model = configuration['floor_model']  # retrieve floor model: fixed or transect
     if floor_model == 'fixed':
@@ -142,11 +144,12 @@ else:
         floor_model = 'fixed'
         floor_profundity = 100
 
+# intermediate values for simple low pass filter of the floor profundity. This is done to avoid step-like response from the controller
 _t1_floor_profundity = floor_profundity
 _t0_floor_profundity = floor_profundity
 
 ########################################
-# Print summary of simulation parameters
+# Print summary of simulation parameters		TODO: improve summary table
 ########################################
 print ("----------------------------------")
 print ("Platform parameters:")
@@ -166,10 +169,10 @@ print ("\tAltitude[m]: ", str(braking_altitude), "\tProfundity[m]: ", floor_prof
 print (" * Solver:")
 print ("\tTime step[s]: ", time_step, "\tGravity[m/s2]: ", gravity, "\tDrag coeff: ", drag_coefficient)
 
-if args.output:
+if args.output:	# if 'output' flag was defined, then load the desired output filename
     print ("Runtime defined output filename: ", args.output)
     simulation_details = args.output
-else:
+else:	# if no explicit output was defined, then we create a fully identified string to be used as output filename
     # string used for the output file name (both CSV and HTML outputs)
     density_id = configuration['density_profile'].split("_")[1]
     density_id = density_id.split("/")[-1]
@@ -195,12 +198,13 @@ print ("\nRunning simulation ...\n--------------------")
 
 print ("\nStarting DIVING mode")
 print ("Time: ", t, "\tDepth: ", depth)
-mode = 'DIVING'
+mode = 'DIVING'	# mode variable that will reflect accordingly the behaviour of the platform
 
 thruster_force = 0  # starting with the thrusters OFF
 safety_factor_altitude = 1.0    # safety margin to trigger phase transition from BRAKING to CONTROL (basically increases the Htarget for the control, so it fires the thrusters before reaching the target)
 target_altitude = configuration['control']['target_altitude']   # reference value for the altitude controller
 
+# Loading PID contrroller gains from the configuration
 _kp = configuration['control']['kp_gain']
 _ki = configuration['control']['ki_gain']
 _kd = configuration['control']['kd_gain']
@@ -208,23 +212,25 @@ _kd = configuration['control']['kd_gain']
 # creates SimplePID controller object, with defined gains and hard limits for the control output
 pid = SimplePID(target_altitude, -100, 100, _kp, _ki, _kd, time_step * 1000 )
 
+# execution flag, to be employed in the main simulation loop
 keep_running = True
 
-#while t < simulation_time:     # limit simulation time and depth (due to speed constraints)
-#while (depth < (floor_profundity + 10)) and (t < simulation_time) and (keep_running == True):     # limit simulation time and depth (due to speed constraints)
+# Stop conditions for simulation: total simulation time, and any specific criteria defined in the body of the loop (in those cases, use keep_running flag)
 while (t < simulation_time) and (keep_running == True):     # limit simulation time and depth (due to speed constraints)
 
+	# we detect if the altitude is negative (plus an additional gap, currently of 10 meters)
     if (depth > (floor_profundity + 10)):
         print ("\n>>>>>>>>>\tPlatform crashed!!!")
         print ("\n>>>>>>>>>\tHalting simulation...")
         print (floor_profundity)
         print (depth)
-        keep_running = False
+        keep_running = False	# triggers end of current simulation loop
         break
     ################################################
     # HORIZONTAL MOVEMENT SIMULATION
     # Only required for floor_model = 'transect' mode
     ################################################
+    # current implementation simulates a simple constant speed movement along the seabed
     horizontal_position = horizontal_position + configuration['transect']['horizontal_speed']*time_step
 
     ################################################
@@ -242,6 +248,8 @@ while (t < simulation_time) and (keep_running == True):     # limit simulation t
         # when indexing, horizontal_position is converted from input file resolution (cm) to its close integer index, for faster lookup
         _t0_floor_profundity = profundity_table[1][math.floor(horizontal_position*100)] + configuration['transect']['transect_profundity_offset']
 
+        # cheap low-pass filter included to reduce the step-like behaviour of the bathymetric data empplyed in current simulations
+        # probably is worth having a pre-filtered seafloor profile data
         floor_profundity = 0.05*_t0_floor_profundity + 0.9*_t1_floor_profundity + 0.05 *_t2_floor_profundity
     # otherwise, we keep using the same initial value
 
@@ -267,6 +275,7 @@ while (t < simulation_time) and (keep_running == True):     # limit simulation t
     ################################################
     buoyancy_force = total_volume*gravity*seawater_density
     drag_force = 0.5*drag_coefficient*seawater_density*area*abs(vertical_velocity)*vertical_velocity
+
     # calculate the actual net force experienced by the platform
     net_force = total_weight - buoyancy_force - drag_force - thruster_force
     # The real acceleration is obtained from F = m . a 
@@ -276,7 +285,7 @@ while (t < simulation_time) and (keep_running == True):     # limit simulation t
 #    force_drag = total_weight - force_buoyancy  # assume it acelerates to terminal velocity
     depth = depth + vertical_velocity*time_step
 
-    # to avoid non-valid cases, such as emerging from the water
+    # to avoid non-valid cases, negative depths (platform surfaced)
     if depth < 0:
         print ("Simulation halted: DEPTH < 0\n\tPlatform surfaced at ", t, " seconds")
         keep_running = False
@@ -340,11 +349,12 @@ while (t < simulation_time) and (keep_running == True):     # limit simulation t
         last_thruster_force = thruster_force
         pid_out = pid.get_output_value(current_altitude)
 
+        ## low pass filter for the thruster force, implemented as suggested during tests for UT19 paper
         thruster_force = 0.2*pid_out + 0.8*last_thruster_force
 
         # we could check if the ellapsed time in CONTROL phase is higher than our mission time
         time_controlling = t - start_control_time
-        if (time_controlling > mission_duration):
+        if (time_controlling > mission_duration):	# did we exceed the mission duration? switch to SURFACING mode!
             print ("Starting SURFACING mode")
             print ("Time: ", t, "\tDepth: ", depth)
             mode = 'SURFACING'
@@ -389,6 +399,7 @@ output_df = pd.DataFrame(
      'thruster': thruster_history
     })
 
+# construct the output file name based on the defined preffix, simulation parameters, and file extension
 output_file = configuration['output']['file_path'] + configuration['output']['file_preffix'] + simulation_details + configuration['output']['file_extension']
 output_file_html = configuration['output']['file_path'] + "plot" + simulation_details + ".html"
 
@@ -402,7 +413,8 @@ time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
 ####################################################################
 # Creates plots using Plotly
 ####################################################################
-
+# for faster simulations, we can define that we don't want to generate the output HTML plots.
+# this is the suggested setup for batch simulations
 if configuration['output']['export_html'] == True:
     print ("Creating plots ...")
     trace1 = go.Scatter(y=depth_dive_history, x=time_dive_history, name='Depth')
@@ -414,11 +426,12 @@ if configuration['output']['export_html'] == True:
 
     fig = tools.make_subplots(rows=2, cols=2, subplot_titles=('Depth', 'Velocity',
                                                               'Thruster', 'Balls'))
+    # depth and profundity
     fig.append_trace(trace1, 1, 1)
     fig.append_trace(trace5, 1, 1)
-
+    # velocity
     fig.append_trace(trace2, 1, 2)
-
+    # thruster and altitude error
     fig.append_trace(trace3, 2, 1)
     fig.append_trace(trace6, 2, 1)
 
