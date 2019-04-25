@@ -41,8 +41,7 @@ if args.verbose:
 
 #########################################
 
-
-print ("//Driftcam diving simulator//")
+print ("**Driftcam_ diving simulator**")
 print ("Loading configuration.yaml...")
 config_file = "config/configuration.yaml"
 

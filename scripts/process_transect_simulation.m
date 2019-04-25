@@ -1,4 +1,4 @@
-s% Import data
+% Import data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [pm ps em es emx ctd_id ball_id trans_id] = process_transect_simulation (filename, row_skip = 0, flag_plot = 0)
     DIVE = 0;
@@ -37,8 +37,9 @@ function [pm ps em es emx ctd_id ball_id trans_id] = process_transect_simulation
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Simulation wise parameters
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    time_step = 0.1;         % seconds: dT solver
-    mission_time = 360000;    % 100 hrs = 36.000 seconds in CONTROL mode, scaled to samples (dividing by 0.1)
+    time_step = 0.5;         % seconds: dT solver
+    mission_time = 172800; % 1 day mission, 0.5 time_step solver
+%    mission_time = 86400;    % 100 hrs = 36.000 seconds in CONTROL mode, scaled to samples (dividing by 0.1)
     target_altitude = 2.0;   % target altitude employed for ALL the current simulation set
 
     altitude = depth - prof;
@@ -197,6 +198,6 @@ function [pm ps em es emx ctd_id ball_id trans_id] = process_transect_simulation
     i = strfind (filename, "_tT");
     trans_id = str2double(filename (i+3:i+3));
 
-	new_filename = strcat(fPath,"/flag/",fName,"_power_mode.csv");
+	new_filename = strcat(fPath,"/processed/",fName,"_power_mode.csv");
 	dlmwrite(new_filename, [pm ps em es emx], 'delimiter', '\t');
 

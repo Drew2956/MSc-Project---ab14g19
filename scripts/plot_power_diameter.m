@@ -1,4 +1,4 @@
-% Receive path to CSV files containing the simuation output with the template:
+% Receive path to CSV files containing the simulation output with the template:
 % batch_e0.03_d0.014_cCTD01_tT1_power_mode.csv
 
 % Current implementation includes downsampling capabiities, using an integer factor K

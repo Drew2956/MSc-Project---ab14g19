@@ -3,7 +3,7 @@
 
 # File containing density vs depth data, already interpolated at 1m interval.
 # This will be used as a lookup table for a faster simulation, instead of recurrent interpolation at simulation time
-density_profile: "data/ctd/interpolated/5K_ctd_average.csv"
+density_profile: "data/ctd/interpolated/CTD01.csv"
 floor_model: "transect"  # options are: "fixed" | "transect" . Fixed mode uses floor_profundity defined in the control section, Transect mode use the floor profile from transect section
 
 input:
@@ -14,7 +14,7 @@ input:
   seawater_density: 1024.0  # for those fixed density simulation cases [kg/m3]
 
   # Other simulation parameters 
-  time_step: 0.1      # [s] Euler solver time step. Ideal step values: 0.1 , as smaller steps doesn't provide any noticeable change in system dynamics response
+  time_step: 0.5      # [s] Euler solver time step. Ideal step values: 0.1 , as smaller steps doesn't provide any noticeable change in system dynamics response
   min_dispensing_time: 1  # [s] minimum admissible time between drop ball event
 
   # variables you don't want to change unless you know what you're doing
@@ -23,7 +23,7 @@ input:
   drag_coefficient: 1.2   # Geometry defined 
   radius: 0.2             # [m] transversal section
   tau : 4                 # [m] system dynamic response constant
-  simulation_time: 60000   # [s] total simulation time
+  simulation_time: 100000  # [s] total simulation time
 
   # Using parameters from Al6061T housing
   main_mass: 27.40        # [kg] mass of the main body
@@ -38,8 +38,8 @@ input:
   flotation_density: 400.0 # [kg/m3]
 
 control:
-  mission_duration: 36000 # [s] time in control mode before triggering surfacing mode
-  floor_profundity: 1000   # [m] fixed simulation profundity. Ignored when using a user defined seafloor profile
+  mission_duration: 86400 # [s] time in control mode before triggering surfacing mode
+  floor_profundity: 1000  # [m] fixed simulation profundity. Ignored when using a user defined seafloor profile
   braking_altitude: 25    # [m] altitude threshold: BRAKING will be triggered when depth > floor_profundity - target_altitude
   target_altitude: 2      # [m] altitude threshold: CONTROL will be triggered when depth > floor_profundity - target_altitude
                           # it is equivalent to say when: altitude < target_altitude
@@ -48,13 +48,13 @@ control:
   kd_gain: 4.2
 
 transect:
-  transect_profile: "data/transects/HR3_DES_CD_10k_interpolated.csv"  # 10 cm decimated transect with a seafloor model
+  transect_profile: "data/transects/T1.csv"  # 10 cm decimated transect with a seafloor model
   transect_profundity_offset: 0      # [m] depth offset of the transect_profile 
   horizontal_speed: 0.05  # [m/s] horizontal speed: current drift
   horizontal_position_offset: 0  # [m] horizontal position offset
 
 output:
   export_html: False
-  file_preffix: "batch"
+  file_preffix: "1d_"
   file_extension: ".csv"
   file_path: "data/simulations/batch/"

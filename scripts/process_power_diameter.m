@@ -1,6 +1,6 @@
 % Import data from summary table
 
-function data = process_power_diameter(file_list, max_length = 2000)
+function data = process_power_diameter(file_list)
 
 	close all
 	% Look for all CSV files in the provided folder root (recursively)
@@ -25,17 +25,17 @@ function data = process_power_diameter(file_list, max_length = 2000)
 		filename = filename(1:l);
 
 		[fPath fName fExtension] = fileparts (filename);
-		printf ("Processing @ process_transect_simuation[%s] ...\n", fName)
+		printf ("Processing @ process_transect_simulation[%s] ...\n", fName)
 
-		[pm ps em es emx _ctd _ball _trans] = process_transect_simulation (filename, row_skip = 0, flag_plot = 0);
-		power_mean(i) = pm
-		power_std(i) = ps
-		error_mean(i) = em
-		error_std(i) = es
-		error_max(i) = emx
-		ctd_id(i) = _ctd
-		ball_id(i) = _ball
-		tran_id(i) = _trans
+		[pm ps em es emx _ctd _ball _trans] = process_transect_simulation (filename, 0, 0);
+		power_mean(i) = pm;
+		power_std(i) = ps;
+		error_mean(i) = em;
+		error_std(i) = es;
+		error_max(i) = emx;
+		ctd_id(i) = _ctd;
+		ball_id(i) = _ball;
+		tran_id(i) = _trans;
 	end
 
 	data = [power_mean power_std error_mean error_std ctd_id ball_id tran_id];
