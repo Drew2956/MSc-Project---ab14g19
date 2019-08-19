@@ -72,6 +72,7 @@ density_table = pd.read_csv(configuration['density_profile'], sep='\t', header=N
 depth = configuration['input']['start_depth']  # initial simulation depth
 vertical_velocity = configuration['input']['start_velocity']   # initial vertical velocity. For faithfull simulations, it should be close to 0.0
 horizontal_position = configuration['transect']['horizontal_position_offset']   # starting point in X axis for the transect mode simulations
+
 t = 0.0
 dropped_ball_time = 0   # timestamp of last dropped ball event
 
@@ -197,6 +198,7 @@ drag_dive_history = []
 balls_history = []
 acceleration_dive_history = []
 thruster_history = []
+buoyancy_history = []
 
 last_velocity = vertical_velocity
 
@@ -206,7 +208,7 @@ print ("\nStarting DIVING mode")
 print ("Time: ", t, "\tDepth: ", depth)
 mode = 'DIVING'	# mode variable that will reflect accordingly the behaviour of the platform
 
-thruster_force = 0  # starting with the thrusters OFF
+thruster_force = 7.5  # starting with the thrusters OFF
 safety_factor_altitude = 1.0    # safety margin to trigger phase transition from BRAKING to CONTROL (basically increases the Htarget for the control, so it fires the thrusters before reaching the target)
 target_altitude = configuration['control']['target_altitude']   # reference value for the altitude controller
 
@@ -267,8 +269,10 @@ while (t < simulation_time) and (keep_running == True):     # limit simulation t
     microballast_volume = ball_volume * number_of_balls # m3
 
     # complete system volume: platform + flotation + microballasts
-    total_volume = flotation_volume + main_volume + microballast_volume
-    total_mass = main_mass + microballast_mass + flotation_mass
+    # total_volume = flotation_volume + main_volume + microballast_volume
+    # total_mass = main_mass + microballast_mass + flotation_mass
+    total_volume = flotation_volume + main_volume
+    total_mass = main_mass + flotation_mass
     total_weight = total_mass*gravity
 
     # See if it is possible to improve speed while doing the density search in the input vector (already ordered)
@@ -280,10 +284,15 @@ while (t < simulation_time) and (keep_running == True):     # limit simulation t
     ## BODY-FLUID INTERACTION SIMULATION
     ################################################
     buoyancy_force = total_volume*gravity*seawater_density
+    
     drag_force = 0.5*drag_coefficient*seawater_density*area*abs(vertical_velocity)*vertical_velocity
-
+    print('drag_force:',drag_force)
     # calculate the actual net force experienced by the platform
-    net_force = total_weight - buoyancy_force - drag_force - thruster_force
+    net_buoyancy = buoyancy_force - total_weight
+    
+    # net_force = total_weight - buoyancy_force - drag_force - thruster_force
+    net_force = thruster_force - net_buoyancy - drag_force
+    #print('Resultant buoyancy acting on the body', net_buoyancy)
     # The real acceleration is obtained from F = m . a 
     acceleration = net_force / total_mass
     # The velocity is calculated via Euler integration for the acceleration 
@@ -386,6 +395,7 @@ while (t < simulation_time) and (keep_running == True):     # limit simulation t
     drag_dive_history.append(drag_force)
     thruster_history.append(thruster_force)
     balls_history.append(number_of_balls)
+    buoyancy_history.append(net_buoyancy)
     t += time_step
 
 print ("\nEnd of simulation. Depth: ", depth, " @ t: ", t)
@@ -428,9 +438,10 @@ if configuration['output']['export_html'] == True:
     trace4 = go.Scatter(y=balls_history, x=time_dive_history, name='Balls')
     trace5 = go.Scatter(y=floor_profundity_history, x=time_dive_history, name='Profundity')
     trace6 = go.Scatter(y=error_history, x=time_dive_history, name='Altitude error')
+    trace7 = go.Scatter(y=buoyancy_history, x=time_dive_history, name='Net Buoyancy Force')
 
-    fig = tools.make_subplots(rows=2, cols=2, subplot_titles=('Depth', 'Velocity',
-                                                              'Thruster', 'Balls'))
+    fig = tools.make_subplots(rows=3, cols=2, subplot_titles=('Depth', 'Velocity',
+                                                              'Thruster', 'Balls','Buoyancy'))
     # depth and profundity
     fig.append_trace(trace1, 1, 1)
     fig.append_trace(trace5, 1, 1)
@@ -441,16 +452,19 @@ if configuration['output']['export_html'] == True:
     fig.append_trace(trace6, 2, 1)
 
     fig.append_trace(trace4, 2, 2)
+    fig.append_trace(trace7, 3, 1)
 
     fig['layout']['xaxis1'].update(title='Time (s)')
     fig['layout']['xaxis2'].update(title='Time (s)')
     fig['layout']['xaxis3'].update(title='Time (s)')
     fig['layout']['xaxis4'].update(title='Time (s)')
+    fig['layout']['xaxis5'].update(title='Time (s)')
 
     fig['layout']['yaxis1'].update(title='Depth (m) & Profundity (m)', autorange='reversed')
     fig['layout']['yaxis2'].update(title='Velocity (m/s)')
     fig['layout']['yaxis3'].update(title='Thruster (N) & Altitude error (m)')
     fig['layout']['yaxis4'].update(title='Number of balls (#)')
+    fig['layout']['yaxis5'].update(title='Net Buoyancy force (N)')
 
     fig['layout'].update(title='Customizing Subplot Axes')
 

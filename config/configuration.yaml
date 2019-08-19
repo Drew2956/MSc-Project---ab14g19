@@ -3,13 +3,13 @@
 
 # File containing density vs depth data, already interpolated at 1m interval.
 # This will be used as a lookup table for a faster simulation, instead of recurrent interpolation at simulation time
-density_profile: "data/ctd/interpolated/CTD01.csv"
-floor_model: "transect"  # options are: "fixed" | "transect" . Fixed mode uses floor_profundity defined in the control section, Transect mode use the floor profile from transect section
+density_profile: "data/ctd/interpolated/CTD10.csv"
+floor_model: "fixed" #transect"  # options are: "fixed" | "transect" . Fixed mode uses floor_profundity defined in the control section, Transect mode use the floor profile from transect section
 
 input:
   start_depth: 5.0 # [m] initial depth 
   start_velocity: 0.0 # [m/s] initial vertical velocity
-  eta:  0.03       # Value from D1-1 base design
+  eta:  0.02 #0.05 #0.05       # Value from D1-1 base design
 
   seawater_density: 1024.0  # for those fixed density simulation cases [kg/m3]
 
@@ -32,15 +32,15 @@ input:
   ball_diameter: 0.020    # [m] ballast unit diameter
   ball_density: 7800      # [kg/m3] 
 
-  ballast_mass: 2.293   # [kg] total ballast mass: ws + wd
+  ballast_mass: 0 #2.293   # [kg] total ballast mass: ws + wd
 
-  flotation_mass: 5.328    # [kg]
+  flotation_mass: 5.115 #5.328    # [kg]
   flotation_density: 400.0 # [kg/m3]
 
 control:
   mission_duration: 86400 # [s] time in control mode before triggering surfacing mode
-  floor_profundity: 1000  # [m] fixed simulation profundity. Ignored when using a user defined seafloor profile
-  braking_altitude: 25    # [m] altitude threshold: BRAKING will be triggered when depth > floor_profundity - target_altitude
+  floor_profundity: 200 #1000  # [m] fixed simulation profundity. Ignored when using a user defined seafloor profile
+  braking_altitude: 4    # [m] altitude threshold: BRAKING will be triggered when depth > floor_profundity - target_altitude
   target_altitude: 2      # [m] altitude threshold: CONTROL will be triggered when depth > floor_profundity - target_altitude
                           # it is equivalent to say when: altitude < target_altitude
   kp_gain: 1.4
@@ -48,13 +48,13 @@ control:
   kd_gain: 4.2
 
 transect:
-  transect_profile: "data/transects/T1.csv"  # 10 cm decimated transect with a seafloor model
+  transect_profile: "data/transects/Ts.csv"  # 10 cm decimated transect with a seafloor model
   transect_profundity_offset: 0      # [m] depth offset of the transect_profile 
   horizontal_speed: 0.05  # [m/s] horizontal speed: current drift
   horizontal_position_offset: 0  # [m] horizontal position offset
 
 output:
-  export_html: False
+  export_html: True
   file_preffix: "1d_"
   file_extension: ".csv"
   file_path: "data/simulations/batch/"
